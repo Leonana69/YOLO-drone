@@ -9,7 +9,7 @@ from .minispec_interpreter import MiniSpecValueType, evaluate_value
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class LLMPlanner():
-    def __init__(self):
+    def __init__(self, gear=False):
         self.llm = LLMWrapper()
 
         # read prompt from txt

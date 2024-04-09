@@ -1,6 +1,6 @@
 import cv2
 from typing import Tuple
-from .abs.drone_wrapper import DroneWrapper
+from .abs.robot_wrapper import RobotWrapper
 
 class FrameReader:
     def __init__(self, cap):
@@ -17,7 +17,7 @@ class FrameReader:
             raise ValueError("Could not read frame")
         return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-class VirtualDroneWrapper(DroneWrapper):
+class VirtualRobotWrapper(RobotWrapper):
     def __init__(self):
         self.stream_on = False
         pass

@@ -2,7 +2,7 @@ import time
 from typing import Tuple
 from djitellopy import Tello
 
-from .abs.drone_wrapper import DroneWrapper
+from .abs.robot_wrapper import RobotWrapper
 
 MOVEMENT_MIN = 20
 MOVEMENT_MAX = 300
@@ -17,7 +17,7 @@ def cap_distance(distance):
         return MOVEMENT_MAX
     return distance
 
-class TelloWrapper(DroneWrapper):
+class TelloWrapper(RobotWrapper):
     def __init__(self):
         self.drone = Tello()
         self.active_count = 0

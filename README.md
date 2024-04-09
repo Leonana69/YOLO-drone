@@ -5,7 +5,7 @@ Also, check out the demo video here: [Demo 1: Find edible or drinkable items](ht
 
 ## Hardware Requirement
 TypeFly works with DJI Tello drone by default. Since Tello drone requires your device to connect to its wifi and TypeFly requires Internet connection, you need to have both wifi adapter and ethernet adapter to run TypeFly.
-To support other drones, you need to implement the `DroneWrapper` interface in `controller/abs/drone_wrapper.py`.
+To support other drones, you need to implement the `RobotWrapper` interface in `controller/abs/drone_wrapper.py`.
 
 ## OPENAI API KEY Requirement
 TypeFly use GPT-4 API as the remote LLM planner, please make sure you have set the `OPENAI_API_KEY` environment variable.

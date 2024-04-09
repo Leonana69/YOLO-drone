@@ -16,14 +16,14 @@ from controller.utils import print_t
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class TypeFly:
-    def __init__(self, use_virtual_cam=True, use_http=False):
+    def __init__(self, use_virtual_robot=True, use_http=False, gear=False):
          # create a cache folder
         self.cache_folder = os.path.join(CURRENT_DIR, 'cache')
         if not os.path.exists(self.cache_folder):
             os.makedirs(self.cache_folder)
         self.message_queue = queue.Queue()
         self.message_queue.put(self.cache_folder)
-        self.llm_controller = LLMController(use_virtual_cam, use_http, self.message_queue)
+        self.llm_controller = LLMController(use_virtual_robot, use_http, gear, self.message_queue)
         self.system_stop = False
         self.ui = gr.Blocks(title="TypeFly")
         self.asyncio_loop = asyncio.get_event_loop()
@@ -102,8 +102,9 @@ class TypeFly:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--use_virtual_cam', action='store_true')
+    parser.add_argument('--use_virtual_robot', action='store_true')
     parser.add_argument('--use_http', action='store_true')
+    parser.add_argument('--gear', action='store_true')
     args = parser.parse_args()
-    typefly = TypeFly(use_virtual_cam=args.use_virtual_cam, use_http=args.use_http)
+    typefly = TypeFly(use_virtual_robot=args.use_virtual_robot, use_http=args.use_http, gear=args.gear)
     typefly.run()

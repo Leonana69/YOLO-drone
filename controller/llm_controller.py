@@ -7,18 +7,19 @@ import uuid
 from .yolo_client import YoloClient, SharedYoloResult
 from .yolo_grpc_client import YoloGRPCClient
 from .tello_wrapper import TelloWrapper
-from .virtual_drone_wrapper import VirtualDroneWrapper
-from .abs.drone_wrapper import DroneWrapper
+from .virtual_robot_wrapper import VirtualRobotWrapper
+from .abs.robot_wrapper import RobotWrapper
 from .vision_skill_wrapper import VisionSkillWrapper
 from .llm_planner import LLMPlanner
 from .skillset import SkillSet, LowLevelSkillItem, HighLevelSkillItem, SkillArg
 from .utils import print_t, input_t
 from .minispec_interpreter import MiniSpecInterpreter
+from .gear_wrapper import GearWrapper
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class LLMController():
-    def __init__(self, use_virtual_drone=True, use_http=False, message_queue: Optional[queue.Queue]=None):
+    def __init__(self, use_virtual_robot=True, use_http=False, gear=False, message_queue: Optional[queue.Queue]=None):
         self.yolo_results_image_queue = queue.Queue(maxsize=30)
         self.shared_yolo_result = SharedYoloResult()
         if use_http:
@@ -38,14 +39,17 @@ class LLMController():
         if not os.path.exists(self.cache_folder):
             os.makedirs(self.cache_folder)
         
-        if use_virtual_drone:
+        if use_virtual_robot:
             print_t("[C] Start virtual drone...")
-            self.drone: DroneWrapper = VirtualDroneWrapper()
+            self.drone: RobotWrapper = VirtualRobotWrapper()
+        elif gear:
+            print_t("[C] Start real robot car...")
+            self.drone: RobotWrapper = GearWrapper()
         else:
             print_t("[C] Start real drone...")
-            self.drone: DroneWrapper = TelloWrapper()
+            self.drone: RobotWrapper = TelloWrapper()
         
-        self.planner = LLMPlanner()
+        self.planner = LLMPlanner(gear)
 
         # load low-level skills
         self.low_level_skillset = SkillSet(level="low")

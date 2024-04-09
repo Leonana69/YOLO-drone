@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-class DroneWrapper(ABC):
+class RobotWrapper(ABC):
     @abstractmethod
     def connect(self):
         pass
