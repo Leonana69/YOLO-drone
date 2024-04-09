@@ -10,14 +10,14 @@
         "definition": "8{_1=p($1);?_1!=False{->_1}tc(45)}->False"
     },
     {
-        "skill_name": "approach",
-        "skill_description": "Approach a certain object",
-        "definition": "6{?oh($1)<0.5{mf(40};->True}->False"
-    },
-    {
         "skill_name": "orienting",
         "skill_description": "Rotate to align with a certain object",
         "definition": "4{_1=ox($1);?_1>0.6{tc(15)};?_1<0.4{tu(15)};_2=ox($1);?_2<0.6&_2>0.4{->True}}->rp"
+    },
+    {
+        "skill_name": "approach",
+        "skill_description": "Approach a certain object",
+        "definition": "10{?oh($1)>0.4{->True}orienting($1);mf(10)}->False"
     },
     {
         "skill_name": "goto",

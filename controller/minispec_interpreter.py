@@ -37,9 +37,10 @@ class MiniSpecReturnValue:
 class MiniSpecInterpreter:
     low_level_skillset: SkillSet = None
     high_level_skillset: SkillSet = None
-    def __init__(self):
+    def __init__(self, depth=0):
         self.env = {}
         self.ret = False
+        self.depth = depth
         self.execution_status = []
         if MiniSpecInterpreter.low_level_skillset is None or \
             MiniSpecInterpreter.high_level_skillset is None:
@@ -72,6 +73,7 @@ class MiniSpecInterpreter:
         return [s for s in statements if s]
 
     def execute(self, code) -> MiniSpecReturnValue:
+        # print(f'Executing: {code}, depth={self.depth}')
         statements = self.split_statements(code)
         for statement in statements:
             if not statement:
@@ -110,6 +112,8 @@ class MiniSpecInterpreter:
         for i in range(int(count)):
             ret_val = self.execute(program)
             if ret_val.replan:
+                return ret_val
+            if self.ret:
                 return ret_val
         return MiniSpecReturnValue.default()
 
@@ -160,7 +164,6 @@ class MiniSpecInterpreter:
             return MiniSpecReturnValue(False, False)
         
         operand_1, comparator, operand_2 = re.split(r'(>|<|==|!=)', condition)
-
         operand_1 = self.evaluate_operand(operand_1)
         if operand_1.replan:
             return operand_1
@@ -169,7 +172,7 @@ class MiniSpecInterpreter:
             return operand_2
         
         if type(operand_1.value) != type(operand_2.value):
-            raise Exception('Invalid comparison, type mismatch')
+            raise Exception(f'Invalid comparison, type mismatch {operand_1.value} and {operand_2.value}')
         
         if comparator == '>':
             cmp = operand_1.value > operand_2.value
@@ -220,7 +223,7 @@ class MiniSpecInterpreter:
 
         skill_instance = MiniSpecInterpreter.high_level_skillset.get_skill(name)
         if skill_instance is not None:
-            interpreter = MiniSpecInterpreter()
+            interpreter = MiniSpecInterpreter(self.depth + 1)
             val = interpreter.execute(skill_instance.execute(args))
             if val.value == 'rp':
                 return MiniSpecReturnValue(f'High-level skill {skill_instance.get_name()} failed', True)

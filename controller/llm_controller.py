@@ -180,7 +180,7 @@ class LLMController():
             if latest_yolo_result is not None:
                 YoloClient.plot_results(latest_yolo_result[0], latest_yolo_result[1]['result'])
                 self.yolo_results_image_queue.put(latest_yolo_result[0])
-            time.sleep(0.010)
+            time.sleep(0.050)
         # Cancel all running tasks (if any)
         for task in asyncio.all_tasks(asyncio_loop):
             task.cancel()
