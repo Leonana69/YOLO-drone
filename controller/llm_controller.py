@@ -136,6 +136,8 @@ class LLMController():
             #     print_t("[C] > Plan rejected <")
             #     return
             ret_val = self.execute_minispec(self.current_plan)
+            break
+            # disable replan for now
             if ret_val.replan:
                 print_t(f"[C] > Replanning <: {ret_val.value}")
                 continue
@@ -178,7 +180,7 @@ class LLMController():
             if latest_yolo_result is not None:
                 YoloClient.plot_results(latest_yolo_result[0], latest_yolo_result[1]['result'])
                 self.yolo_results_image_queue.put(latest_yolo_result[0])
-            time.sleep(0.030)
+            time.sleep(0.010)
         # Cancel all running tasks (if any)
         for task in asyncio.all_tasks(asyncio_loop):
             task.cancel()

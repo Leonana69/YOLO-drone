@@ -12,7 +12,8 @@ class GearWrapper(RobotWrapper):
             'stream_port': 81
         }
         self.robot = Podtp(config)
-        self.move_speed = 1
+        self.move_speed_x = 2.5
+        self.move_speed_y = 2.8
         self.rotate_speed = 15
 
     def keep_active(self):
@@ -41,26 +42,42 @@ class GearWrapper(RobotWrapper):
     def get_frame_reader(self):
         if not self.stream_on:
             return None
-        return self.robot.image_parser
+        return self.robot.frame_reader
 
     def move_forward(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving forward {distance} cm")
         while distance > 0:
-            self.robot.send_command_hover(0, self.move_speed, 0, 0)
+            self.robot.send_command_hover(0, self.move_speed_x, 0, 0)
             time.sleep(0.1)
-            distance -= 10
+            distance -= 2
+        self.robot.send_command_hover(0, 0, 0, 0)
         return True, False
 
     def move_backward(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving backward {distance} cm")
+        while distance > 0:
+            self.robot.send_command_hover(0, -self.move_speed_x, 0, 0)
+            time.sleep(0.1)
+            distance -= 2
+        self.robot.send_command_hover(0, 0, 0, 0)
         return True, False
 
     def move_left(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving left {distance} cm")
+        while distance > 0:
+            self.robot.send_command_hover(0, 0, -self.move_speed_y, 0)
+            time.sleep(0.1)
+            distance -= 2
+        self.robot.send_command_hover(0, 0, 0, 0)
         return True, False
 
     def move_right(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving right {distance} cm")
+        while distance > 0:
+            self.robot.send_command_hover(0, 0, self.move_speed_y, 0)
+            time.sleep(0.1)
+            distance -= 2
+        self.robot.send_command_hover(0, 0, 0, 0)
         return True, False
 
     def move_up(self, distance: int) -> Tuple[bool, bool]:
@@ -73,6 +90,9 @@ class GearWrapper(RobotWrapper):
 
     def turn_ccw(self, degree: int) -> Tuple[bool, bool]:
         print(f"-> Turning CCW {degree} degrees")
+        self.robot.send_command_position(0, 0, 0, degree)
+        time.sleep(2)
+        self.robot.send_command_hover(0, 0, 0, 0)
         if degree >= 90:
             print("-> Turning CCW over 90 degrees")
             return True, True
@@ -80,6 +100,9 @@ class GearWrapper(RobotWrapper):
 
     def turn_cw(self, degree: int) -> Tuple[bool, bool]:
         print(f"-> Turning CW {degree} degrees")
+        self.robot.send_command_position(0, 0, 0, -degree)
+        time.sleep(2)
+        self.robot.send_command_hover(0, 0, 0, 0)
         if degree >= 90:
             print("-> Turning CW over 90 degrees")
             return True, True
