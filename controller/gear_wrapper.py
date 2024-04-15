@@ -8,6 +8,7 @@ class GearWrapper(RobotWrapper):
         self.stream_on = False
         config = {
             'ip': '192.168.0.115',
+            'ip2': '192.168.8.195',
             'port': 80,
             'stream_port': 81
         }

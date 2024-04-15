@@ -34,4 +34,4 @@ Output:False
 """
 Scene Description:{scene_description}
 Question:{question}
-Please give the content of Output only
+Please give the content of results only, don't include 'Output:' in the results.

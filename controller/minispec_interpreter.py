@@ -172,7 +172,12 @@ class MiniSpecInterpreter:
             return operand_2
         
         if type(operand_1.value) != type(operand_2.value):
-            raise Exception(f'Invalid comparison, type mismatch {operand_1.value} and {operand_2.value}')
+            if comparator == '!=':
+                return MiniSpecReturnValue(True, False)
+            elif comparator == '==':
+                return MiniSpecReturnValue(False, False)
+            else:
+                raise Exception(f'Invalid comparator: {operand_1.value} {operand_2.value}')
         
         if comparator == '>':
             cmp = operand_1.value > operand_2.value
