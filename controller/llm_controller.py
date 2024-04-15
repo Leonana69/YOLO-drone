@@ -67,6 +67,7 @@ class LLMController():
         self.low_level_skillset.add_skill(LowLevelSkillItem("object_y", self.vision.object_y, "Get object's Y-coordinate in (0,1)", args=[SkillArg("object_name", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("object_width", self.vision.object_width, "Get object's width in (0,1)", args=[SkillArg("object_name", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("object_height", self.vision.object_height, "Get object's height in (0,1)", args=[SkillArg("object_name", str)]))
+        self.low_level_skillset.add_skill(LowLevelSkillItem("object_dis", self.vision.object_distance, "Get object's distance in cm", args=[SkillArg("object_name", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("probe", self.planner.request_execution, "Probe the LLM for reasoning", args=[SkillArg("question", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("log", self.skill_log, "Output text to console", args=[SkillArg("text", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("take_picture", self.skill_take_picture, "Take a picture"))
@@ -178,7 +179,6 @@ class LLMController():
             else:
                 # asynchronously send image to yolo server
                 asyncio_loop.call_soon_threadsafe(asyncio.create_task, self.yolo_client.detect(frame))
-
             time.sleep(0.050)
         # Cancel all running tasks (if any)
         for task in asyncio.all_tasks(asyncio_loop):

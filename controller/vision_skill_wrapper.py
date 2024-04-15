@@ -58,3 +58,25 @@ class VisionSkillWrapper():
             return f'object_height: {object_name} not in sight', True
         box = info['box']
         return box['y2'] - box['y1'], False
+    
+    def object_distance(self, object_name: str) -> Tuple[Union[int, str], bool]:
+        info = self.get_obj_info(object_name)
+        if info is None:
+            return f'object_distance: {object_name} not in sight', True
+        box = info['box']
+        mid_point = ((box['x1'] + box['x2']) / 2, (box['y1'] + box['y2']) / 2)
+        FOV_X = 0.42
+        FOV_Y = 0.55
+        if mid_point[0] < 0.5 - FOV_X / 2 or mid_point[0] > 0.5 + FOV_X / 2 \
+        or mid_point[1] < 0.5 - FOV_Y / 2 or mid_point[1] > 0.5 + FOV_Y / 2:
+            return 'object is not in center', False
+        depth = self.shared_frame.get_depth()
+        start_x = 0.5 - FOV_X / 2
+        start_y = 0.5 - FOV_Y / 2
+        index_x = (mid_point[0] - start_x) / FOV_X * (depth.shape[1] - 1)
+        index_y = (mid_point[1] - start_y) / FOV_Y * (depth.shape[0] - 1)
+        return int(depth[int(index_y), int(index_x)] / 10), False
+
+
+
+

@@ -111,20 +111,27 @@ class HighLevelSkillItem(SkillItem):
 
     def generate_argument_list(self) -> List[SkillArg]:
         # Extract all skill calls with their arguments from the code
-        skill_calls = re.findall(r'(\w+)\(([^\;\{\}\?]+)\)', self.definition)
+        skill_calls = re.findall(r'(\w+)\(([^)]*)\)', self.definition)
 
         arg_types = {}
 
         for skill_name, args in skill_calls:
             args = [a.strip() for a in args.split(',')]
-            skill = self.low_level_skillset.get_skill(skill_name)
-            if skill is None:
-                skill = self.high_level_skillset.get_skill(skill_name)
+            if skill_name == "int":
+                function_args = [SkillArg("value", int)]
+            elif skill_name == "float":
+                function_args = [SkillArg("value", float)]
+            elif skill_name == "str":
+                function_args = [SkillArg("value", str)]
+            else:
+                skill = self.low_level_skillset.get_skill(skill_name)
+                if skill is None:
+                    skill = self.high_level_skillset.get_skill(skill_name)
 
-            if skill is None:
-                raise ValueError(f"Skill '{skill_name}' not found in the low-level or high-level skillset.")
+                if skill is None:
+                    raise ValueError(f"Skill '{skill_name}' not found in the low-level or high-level skillset.")
 
-            function_args = skill.get_argument()
+                function_args = skill.get_argument()
             for i, arg in enumerate(args):
                 if arg.startswith('$') and arg not in arg_types:
                     # Match the positional argument with its type from the function definition

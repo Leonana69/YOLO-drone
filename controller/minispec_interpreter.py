@@ -177,7 +177,7 @@ class MiniSpecInterpreter:
             elif comparator == '==':
                 return MiniSpecReturnValue(False, False)
             else:
-                raise Exception(f'Invalid comparator: {operand_1.value} {operand_2.value}')
+                raise Exception(f'Invalid comparator: {operand_1.value}:{type(operand_1.value)} {operand_2.value}:{type(operand_2.value)}')
         
         if comparator == '>':
             cmp = operand_1.value > operand_2.value
@@ -222,18 +222,26 @@ class MiniSpecInterpreter:
                     args[i] = self.get_env_value(args[i])
         else:
             args = []
-        skill_instance = MiniSpecInterpreter.low_level_skillset.get_skill(name)
-        if skill_instance is not None:
-            return MiniSpecReturnValue.from_tuple(skill_instance.execute(args))
 
-        skill_instance = MiniSpecInterpreter.high_level_skillset.get_skill(name)
-        if skill_instance is not None:
-            interpreter = MiniSpecInterpreter(self.depth + 1)
-            val = interpreter.execute(skill_instance.execute(args))
-            if val.value == 'rp':
-                return MiniSpecReturnValue(f'High-level skill {skill_instance.get_name()} failed', True)
-            return val
-        raise Exception(f'Skill {name} is not defined')
+        if name == 'int':
+            return MiniSpecReturnValue(int(args[0]), False)
+        elif name == 'float':
+            return MiniSpecReturnValue(float(args[0]), False)
+        elif name == 'str':
+            return MiniSpecReturnValue(args[0], False)
+        else:
+            skill_instance = MiniSpecInterpreter.low_level_skillset.get_skill(name)
+            if skill_instance is not None:
+                return MiniSpecReturnValue.from_tuple(skill_instance.execute(args))
+
+            skill_instance = MiniSpecInterpreter.high_level_skillset.get_skill(name)
+            if skill_instance is not None:
+                interpreter = MiniSpecInterpreter(self.depth + 1)
+                val = interpreter.execute(skill_instance.execute(args))
+                if val.value == 'rp':
+                    return MiniSpecReturnValue(f'High-level skill {skill_instance.get_name()} failed', True)
+                return val
+            raise Exception(f'Skill {name} is not defined')
     
     '''
     Syntax checking
@@ -359,14 +367,24 @@ class MiniSpecInterpreter:
             args = []
 
         # Add logic to check function call syntax
-        skill_instance = MiniSpecInterpreter.low_level_skillset.get_skill(name)
-        if skill_instance is None:
-            skill_instance = MiniSpecInterpreter.high_level_skillset.get_skill(name)
-        if skill_instance is None:
-            message.append(f'Skill {name} is not defined')
+        if name == 'int':
+            if len(args) != 1:
+                message.append(f'Expected 1 argument for int, but got {len(args)}')
+        elif name == 'float':
+            if len(args) != 1:
+                message.append(f'Expected 1 argument for float, but got {len(args)}')
+        elif name == 'str':
+            if len(args) != 1:
+                message.append(f'Expected 1 argument for str, but got {len(args)}')
+        else:
+            skill_instance = MiniSpecInterpreter.low_level_skillset.get_skill(name)
+            if skill_instance is None:
+                skill_instance = MiniSpecInterpreter.high_level_skillset.get_skill(name)
+            if skill_instance is None:
+                message.append(f'Skill {name} is not defined')
 
-        try:
-            skill_instance.parse_args(args, allow_positional_args=True)
-        except Exception as e:
-            message = message + [str(e)]
+            try:
+                skill_instance.parse_args(args, allow_positional_args=True)
+            except Exception as e:
+                message = message + [str(e)]
         return message

@@ -6,7 +6,7 @@ import json
 import time
 import grpc
 import torch
-from ultralytics import YOLO
+from ultralytics import YOLOWorld
 import multiprocessing
 
 PARENT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,7 +15,7 @@ ROOT_PATH = os.environ.get("ROOT_PATH", PARENT_DIR)
 SERVICE_PORT = os.environ.get("YOLO_SERVICE_PORT", "50050, 50051").split(",")
 
 MODEL_PATH = os.path.join(ROOT_PATH, "./serving/yolo/models/")
-MODEL_TYPE = "yolov8m.pt"
+MODEL_TYPE = "yolov8x-worldv2.pt"
 
 sys.path.append(ROOT_PATH)
 sys.path.append(os.path.join(ROOT_PATH, "proto/generated"))
@@ -23,7 +23,7 @@ import hyrch_serving_pb2
 import hyrch_serving_pb2_grpc
 
 def load_model():
-    model = YOLO(MODEL_PATH + MODEL_TYPE)
+    model = YOLOWorld(MODEL_PATH + MODEL_TYPE)
     if torch.cuda.is_available():
         device = torch.device('cuda:0')
     elif torch.backends.mps.is_available():

@@ -17,11 +17,11 @@
     {
         "skill_name": "approach",
         "skill_description": "Approach a certain object",
-        "definition": "10{?oh($1)>0.5{->True}orienting($1);mf(10)}->False"
+        "definition": "10{orienting($1);?od($1)<int($2){->True}mf(10)}->False"
     },
     {
         "skill_name": "goto",
         "skill_description": "Go to a certain object",
-        "definition": "orienting($1);approach($1)"
+        "definition": "orienting($1);approach($1,$2)"
     }
 ]
