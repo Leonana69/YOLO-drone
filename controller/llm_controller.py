@@ -115,7 +115,7 @@ class LLMController():
     def get_latest_frame(self, plot=False):
         image = self.shared_frame.get_image()
         if plot:
-            YoloClient.plot_results(image, self.shared_frame.get_yolo_result()['result'])
+            YoloClient.plot_results(image, self.shared_frame.get_yolo_result().get('result'))
         return image
     
     def execute_minispec(self, minispec: str):

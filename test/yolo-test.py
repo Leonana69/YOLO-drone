@@ -7,4 +7,3 @@ yolo_client = YoloGRPCClient()
 
 image = Image.open("./images/kitchen.webp")
 yolo_client.detect_local(image)
-print(syr.get())

@@ -41,6 +41,8 @@ class YoloClient():
         return imgByteArr.getvalue()
     
     def plot_results(frame, results):
+        if results is None:
+            return
         def str_float_to_int(value, multiplier):
             return int(float(value) * multiplier)
         draw = ImageDraw.Draw(frame)
