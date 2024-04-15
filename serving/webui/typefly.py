@@ -61,7 +61,7 @@ class TypeFly:
         while True:
             if self.system_stop:
                 break
-            frame = self.llm_controller.get_latest_frame()
+            frame = self.llm_controller.get_latest_frame(True)
             if frame is None:
                 continue
             buf = io.BytesIO()

@@ -4,7 +4,8 @@ from typing import Optional, Tuple
 import asyncio
 import uuid
 
-from .yolo_client import YoloClient, SharedYoloResult
+from .shared_frame import SharedFrame, Frame
+from .yolo_client import YoloClient
 from .yolo_grpc_client import YoloGRPCClient
 from .tello_wrapper import TelloWrapper
 from .virtual_robot_wrapper import VirtualRobotWrapper
@@ -20,13 +21,12 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class LLMController():
     def __init__(self, use_virtual_robot=True, use_http=False, gear=False, message_queue: Optional[queue.Queue]=None):
-        self.yolo_results_image_queue = queue.Queue(maxsize=30)
-        self.shared_yolo_result = SharedYoloResult()
+        self.shared_frame = SharedFrame()
         if use_http:
-            self.yolo_client = YoloClient(shared_yolo_result=self.shared_yolo_result)
+            self.yolo_client = YoloClient(shared_frame=self.shared_frame)
         else:
-            self.yolo_client = YoloGRPCClient(shared_yolo_result=self.shared_yolo_result)
-        self.vision = VisionSkillWrapper(self.shared_yolo_result)
+            self.yolo_client = YoloGRPCClient(shared_frame=self.shared_frame)
+        self.vision = VisionSkillWrapper(self.shared_frame)
         self.latest_frame = None
         self.controller_active = True
         self.controller_wait_takeoff = True
@@ -111,8 +111,11 @@ class LLMController():
     def stop_controller(self):
         self.controller_active = False
 
-    def get_latest_frame(self):
-        return self.yolo_results_image_queue.get()
+    def get_latest_frame(self, plot=False):
+        image = self.shared_frame.get_image()
+        if plot:
+            YoloClient.plot_results(image, self.shared_frame.get_yolo_result()['result'])
+        return image
     
     def execute_minispec(self, minispec: str):
         interpreter = MiniSpecInterpreter()
@@ -168,18 +171,14 @@ class LLMController():
         while self.controller_active:
             self.drone.keep_active()
             self.latest_frame = frame_reader.frame
-            image = Image.fromarray(self.latest_frame)
+            frame = Frame(Image.fromarray(frame_reader.frame), frame_reader.depth)
 
-            if self.yolo_client.local_service():
-                self.yolo_client.detect_local(image)
+            if self.yolo_client.is_local_service():
+                self.yolo_client.detect_local(frame)
             else:
                 # asynchronously send image to yolo server
-                asyncio_loop.call_soon_threadsafe(asyncio.create_task, self.yolo_client.detect(image))
+                asyncio_loop.call_soon_threadsafe(asyncio.create_task, self.yolo_client.detect(frame))
 
-            latest_yolo_result = self.yolo_client.retrieve()
-            if latest_yolo_result is not None:
-                YoloClient.plot_results(latest_yolo_result[0], latest_yolo_result[1]['result'])
-                self.yolo_results_image_queue.put(latest_yolo_result[0])
             time.sleep(0.050)
         # Cancel all running tasks (if any)
         for task in asyncio.all_tasks(asyncio_loop):

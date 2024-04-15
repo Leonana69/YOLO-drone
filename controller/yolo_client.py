@@ -1,6 +1,8 @@
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 from typing import Optional, Tuple
+from numpy.typing import NDArray
+import numpy as np
 from contextlib import asynccontextmanager
 
 import json, os
@@ -10,40 +12,26 @@ import asyncio, aiohttp
 import threading
 
 from .utils import print_t
+from .shared_frame import SharedFrame, Frame
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
 VISION_SERVICE_IP = os.environ.get("VISION_SERVICE_IP", "localhost")
 ROUTER_SERVICE_PORT = os.environ.get("ROUTER_SERVICE_PORT", "50049")
 
-class SharedYoloResult():
-    def __init__(self) -> None:
-        self.result_with_image = (None, {})
-        self.lock = threading.Lock()
-
-    def get(self) -> Tuple[Image.Image, dict]:
-        with self.lock:
-            return self.result_with_image
-        
-    def set(self, val: Tuple[Image.Image, dict]):
-        with self.lock:
-            self.result_with_image = val
-
 '''
 Access the YOLO service through http.
 '''
 class YoloClient():
-    def __init__(self, shared_yolo_result: SharedYoloResult=None):
+    def __init__(self, shared_frame: SharedFrame=None):
         self.service_url = 'http://{}:{}/yolo'.format(VISION_SERVICE_IP, ROUTER_SERVICE_PORT)
         self.image_size = (640, 352)
-        self.image_queue = queue.Queue() # queue element: (image_id, image)
-        self.shared_yolo_result = shared_yolo_result
-        self.latest_result_with_image = None # (image, json_data: {'image_id': int, 'result': [result]})
-        self.latest_result_with_image_lock = asyncio.Lock()
-        self.image_id = 0
-        self.image_id_lock = asyncio.Lock()
+        self.frame_queue = queue.Queue() # queue element: (frame_id, frame)
+        self.shared_frame = shared_frame
+        self.frame_id = 0
+        self.frame_id_lock = asyncio.Lock()
 
-    def local_service(self):
+    def is_local_service(self):
         return VISION_SERVICE_IP == 'localhost'
 
     def image_to_bytes(image):
@@ -64,8 +52,8 @@ class YoloClient():
                         fill=None, outline='blue', width=4)
             draw.text((str_float_to_int(box["x1"], w), str_float_to_int(box["y1"], h) - 50), result["name"], fill='red', font=font)
 
-    def retrieve(self) -> Optional[Tuple[Image.Image, dict]]:
-        return self.latest_result_with_image
+    def retrieve(self) -> Optional[SharedFrame]:
+        return self.shared_frame
     
     @asynccontextmanager
     async def get_aiohttp_session_response(service_url, data, timeout_seconds=3):
@@ -79,9 +67,10 @@ class YoloClient():
         except aiohttp.ServerTimeoutError:
             print_t(f"[Y] Timeout error when connecting to {service_url}")
 
-    def detect_local(self, image):
+    def detect_local(self, frame: Frame):
+        image = frame.image
         image_bytes = YoloClient.image_to_bytes(image.resize(self.image_size))
-        self.image_queue.put(image)
+        self.frame_queue.put(frame)
 
         files = {
             'image': ('image', image_bytes),
@@ -93,20 +82,23 @@ class YoloClient():
         response = requests.post(self.service_url, files=files)
         print_t(f"[Y] Response: {response.text}")
         json_results = json.loads(response.text)
-        self.latest_result_with_image = (self.image_queue.get(), json_results)
-        if self.shared_yolo_result is not None:
-            self.shared_yolo_result.set(json_results)
+        if self.shared_frame is not None:
+            self.shared_frame.set(self.frame_queue.get(), json_results)
 
-    async def detect(self, image):
+    async def detect(self, frame: Frame):
+        if self.is_local_service():
+            self.detect_local(frame)
+            return
+        image = frame.image
         image_bytes = YoloClient.image_to_bytes(image.resize(self.image_size))
 
-        async with self.image_id_lock:
-            self.image_queue.put((self.image_id, image))
+        async with self.frame_id_lock:
+            self.frame_queue.put((self.frame_id, frame))
             files = {
                 'image': image_bytes,
                 'json_data': json.dumps({'user_name': 'yolo', 'stream_mode': True, 'image_id': self.image_id})
             }
-            self.image_id += 1
+            self.frame_id += 1
 
         async with YoloClient.get_aiohttp_session_response(self.service_url, files) as response:
             results = await response.text()
@@ -116,16 +108,15 @@ class YoloClient():
         except:
             print_t(f"[Y] Invalid json results: {results}")
             return
-        async with self.latest_result_with_image_lock:
-            # discard old images
-            if self.image_queue.empty():
-                return
-            while self.image_queue.queue[0][0] < json_results['image_id']:
-                self.image_queue.get()
-            # discard old results
-            if self.image_queue.queue[0][0] > json_results['image_id']:
-                return
+        
+        # discard old images
+        if self.frame_queue.empty():
+            return
+        while self.frame_queue.queue[0][0] < json_results['image_id']:
+            self.frame_queue.get()
+        # discard old results
+        if self.frame_queue.queue[0][0] > json_results['image_id']:
+            return
 
-            self.latest_result_with_image = (self.image_queue.get()[1], json_results)
-            if self.shared_yolo_result is not None:
-                self.shared_yolo_result.set(self.latest_result_with_image)
+        if self.shared_frame is not None:
+            self.shared_frame.set(self.frame_queue.get()[1], json_results)

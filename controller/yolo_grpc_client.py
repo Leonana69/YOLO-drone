@@ -7,7 +7,7 @@ import queue
 import grpc
 import asyncio
 
-from .yolo_client import SharedYoloResult
+from .yolo_client import SharedFrame, Frame
 
 PARENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -22,24 +22,20 @@ YOLO_SERVICE_PORT = os.environ.get("YOLO_SERVICE_PORT", "50050").split(",")[0]
 Access the YOLO service through gRPC.
 '''
 class YoloGRPCClient():
-    def __init__(self, is_local_service=False, shared_yolo_result: SharedYoloResult=None):
-        self.is_local_service = is_local_service
-        if is_local_service:
-            channel = grpc.insecure_channel(f'localhost:{YOLO_SERVICE_PORT}')
+    def __init__(self, shared_frame: SharedFrame=None):
+        if self.is_local_service():
+            channel = grpc.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
         else:
             channel = grpc.aio.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
         self.stub = hyrch_serving_pb2_grpc.YoloServiceStub(channel)
         self.image_size = (640, 352)
-        self.image_queue = queue.Queue()
-        self.shared_yolo_result = shared_yolo_result
-        self.latest_result_with_image = None
-        if not is_local_service:
-            self.latest_result_with_image_lock = asyncio.Lock()
-            self.image_id_lock = asyncio.Lock()
-            self.image_id = 0
+        self.frame_queue = queue.Queue()
+        self.shared_frame = shared_frame
+        self.frame_id_lock = asyncio.Lock()
+        self.frame_id = 0
 
-    def local_service(self):
-        return self.is_local_service
+    def is_local_service(self):
+        return VISION_SERVICE_IP == 'localhost'
 
     def image_to_bytes(image):
         # compress and convert the image to bytes
@@ -47,45 +43,45 @@ class YoloGRPCClient():
         image.save(imgByteArr, format='WEBP')
         return imgByteArr.getvalue()
 
-    def retrieve(self) -> Optional[Tuple[Image.Image, str]]:
-        return self.latest_result_with_image
+    def retrieve(self) -> Optional[SharedFrame]:
+        return self.shared_frame
     
-    def detect_local(self, image):
+    def detect_local(self, frame: Frame):
+        image = frame.image
         image_bytes = YoloGRPCClient.image_to_bytes(image.resize(self.image_size))
-        self.image_queue.put(image)
+        self.frame_queue.put(frame)
 
         detect_request = hyrch_serving_pb2.DetectRequest(image_data=image_bytes)
         response = self.stub.DetectStream(detect_request)
         
         json_results = json.loads(response.json_data)
-        self.latest_result_with_image = (self.image_queue.get(), json_results)
-        if self.shared_yolo_result is not None:
-            self.shared_yolo_result.set(json_results)
+        if self.shared_frame is not None:
+            self.shared_frame.set(self.frame_queue.get(), json_results)
 
-    async def detect(self, image):
-        if self.is_local_service:
-            self.detect_local(image)
+    async def detect(self, frame: Frame):
+        if self.is_local_service():
+            self.detect_local(frame)
             return
-        image_bytes = YoloGRPCClient.image_to_bytes(image.resize(self.image_size))
 
-        async with self.image_id_lock:
-            image_id = self.image_id
-            self.image_queue.put((self.image_id, image))
-            self.image_id += 1
+        image = frame.image
+        image_bytes = YoloGRPCClient.image_to_bytes(image.resize(self.image_size))
+        async with self.frame_id_lock:
+            image_id = self.frame_id
+            self.frame_queue.put((self.frame_id, frame))
+            self.frame_id += 1
 
         detect_request = hyrch_serving_pb2.DetectRequest(image_id=image_id, image_data=image_bytes)
         response = await self.stub.DetectStream(detect_request)
 
-        async with self.latest_result_with_image_lock:
-            json_results = json.loads(response.json_data)
-            if self.image_queue.empty():
-                return
-            # discard old images
-            while self.image_queue.queue[0][0] < json_results['image_id']:
-                self.image_queue.get()
-            # discard old results
-            if self.image_queue.queue[0][0] > json_results['image_id']:
-                return
-            self.latest_result_with_image = (self.image_queue.get()[1], json_results)
-            if self.shared_yolo_result is not None:
-                self.shared_yolo_result.set(self.latest_result_with_image)
+        
+        json_results = json.loads(response.json_data)
+        if self.frame_queue.empty():
+            return
+        # discard old images
+        while self.frame_queue.queue[0][0] < json_results['image_id']:
+            self.frame_queue.get()
+        # discard old results
+        if self.frame_queue.queue[0][0] > json_results['image_id']:
+            return
+        if self.shared_frame is not None:
+            self.shared_frame.set(self.frame_queue.get()[1], json_results)
