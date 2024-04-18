@@ -2,7 +2,7 @@ from ultralytics import YOLOWorld
 import cv2
 
 model = YOLOWorld('yolov8x-worldv2.pt')
-model.set_classes(["green cup"])
+model.set_classes(["shoe"])
 
 def format_result(yolo_result):
     if yolo_result.probs is not None:
@@ -53,8 +53,8 @@ while True:
         break
     # detect
     plot_results(frame, format_result(model(frame, conf=0.01)[0]))
-    print(model(frame, conf=0.01))
-    exit(0)
+    # print(model(frame, conf=0.01))
+    # exit(0)
     # display
     cv2.imshow('frame', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):

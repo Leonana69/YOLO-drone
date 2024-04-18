@@ -114,7 +114,7 @@ class LLMController():
 
     def get_latest_frame(self, plot=False):
         image = self.shared_frame.get_image()
-        if plot:
+        if plot and image:
             YoloClient.plot_results(image, self.shared_frame.get_yolo_result().get('result'))
         return image
     

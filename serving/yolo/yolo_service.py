@@ -53,7 +53,6 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
         self.model = load_model()
         self.model.set_classes(self.default_classes)
 
-    
     @staticmethod
     def bytes_to_image(image_bytes):
         return Image.open(BytesIO(image_bytes))

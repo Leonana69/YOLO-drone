@@ -19,14 +19,13 @@ sys.path.append(os.path.join(PARENT_DIR, "proto/generated"))
 import hyrch_serving_pb2
 import hyrch_serving_pb2_grpc
 
-# VISION_SERVICE_IP = os.environ.get("VISION_SERVICE_IP", "localhost")
-VISION_SERVICE_IP = "10.66.3.68"
+VISION_SERVICE_IP = os.environ.get("VISION_SERVICE_IP", "localhost")
 YOLO_SERVICE_PORT = os.environ.get("YOLO_SERVICE_PORT", "50050").split(",")[0]
 
-channel = grpc.insecure_channel(f'{VISION_SERVICE_IP}:8080')
+channel = grpc.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
 stub = hyrch_serving_pb2_grpc.YoloServiceStub(channel)
 
-detect_request = hyrch_serving_pb2.DetectRequest(image_data=image_to_bytes(Image.open("./images/kitchen.webp")))
+detect_request = hyrch_serving_pb2.DetectRequest(image_data=image_to_bytes(Image.open("./images/kitchen.webp")), conf=0.3)
 response = stub.DetectStream(detect_request)
 
 json_results = json.loads(response.json_data)
