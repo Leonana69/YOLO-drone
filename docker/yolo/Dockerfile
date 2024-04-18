@@ -1,7 +1,7 @@
-FROM ultralytics/yolov5
+FROM ultralytics/ultralytics:latest
 RUN apt update
 RUN apt install -y nano wget
-RUN pip install grpcio-tools ultralytics
+RUN pip install grpcio-tools lapx
 
 # copy the contents of the current project to /workspace
 COPY ../.. /workspace
