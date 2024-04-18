@@ -23,11 +23,10 @@ Access the YOLO service through gRPC.
 '''
 class YoloGRPCClient():
     def __init__(self, shared_frame: SharedFrame=None):
-        if self.is_local_service():
-            channel = grpc.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
-        else:
-            channel = grpc.aio.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
+        channel = grpc.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
+        channel_async = grpc.aio.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
         self.stub = hyrch_serving_pb2_grpc.YoloServiceStub(channel)
+        self.stub_async = hyrch_serving_pb2_grpc.YoloServiceStub(channel_async)
         self.image_size = (640, 352)
         self.frame_queue = queue.Queue()
         self.shared_frame = shared_frame
@@ -76,7 +75,7 @@ class YoloGRPCClient():
             self.frame_id += 1
 
         detect_request = hyrch_serving_pb2.DetectRequest(image_id=image_id, image_data=image_bytes, conf=conf)
-        response = await self.stub.DetectStream(detect_request)
+        response = await self.stub_async.DetectStream(detect_request)
     
         json_results = json.loads(response.json_data)
         if self.frame_queue.empty():
