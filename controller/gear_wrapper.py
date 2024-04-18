@@ -43,7 +43,7 @@ class GearWrapper(RobotWrapper):
     def get_frame_reader(self):
         if not self.stream_on:
             return None
-        return self.robot.frame_reader
+        return self.robot.sensor_data
 
     def move_forward(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving forward {distance} cm")

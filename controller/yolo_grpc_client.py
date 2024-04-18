@@ -1,6 +1,6 @@
 from io import BytesIO
 from PIL import Image
-from typing import Optional, Tuple
+from typing import Optional, List
 
 import json, sys, os
 import queue
@@ -46,21 +46,26 @@ class YoloGRPCClient():
     def retrieve(self) -> Optional[SharedFrame]:
         return self.shared_frame
     
-    def detect_local(self, frame: Frame):
+    def set_class(self, class_names: List[str]):
+        class_request = hyrch_serving_pb2.SetClassRequest(class_names=class_names)
+        response = self.stub.SetClasses(class_request)
+        print(response.result)
+    
+    def detect_local(self, frame: Frame, conf=0.2):
         image = frame.image
         image_bytes = YoloGRPCClient.image_to_bytes(image.resize(self.image_size))
         self.frame_queue.put(frame)
 
-        detect_request = hyrch_serving_pb2.DetectRequest(image_data=image_bytes)
+        detect_request = hyrch_serving_pb2.DetectRequest(image_data=image_bytes, conf=conf)
         response = self.stub.DetectStream(detect_request)
         
         json_results = json.loads(response.json_data)
         if self.shared_frame is not None:
             self.shared_frame.set(self.frame_queue.get(), json_results)
 
-    async def detect(self, frame: Frame):
+    async def detect(self, frame: Frame, conf=0.2):
         if self.is_local_service():
-            self.detect_local(frame)
+            self.detect_local(frame, conf)
             return
 
         image = frame.image
@@ -70,7 +75,7 @@ class YoloGRPCClient():
             self.frame_queue.put((self.frame_id, frame))
             self.frame_id += 1
 
-        detect_request = hyrch_serving_pb2.DetectRequest(image_id=image_id, image_data=image_bytes)
+        detect_request = hyrch_serving_pb2.DetectRequest(image_id=image_id, image_data=image_bytes, conf=conf)
         response = await self.stub.DetectStream(detect_request)
 
         

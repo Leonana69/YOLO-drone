@@ -172,7 +172,8 @@ class LLMController():
         while self.controller_active:
             self.drone.keep_active()
             self.latest_frame = frame_reader.frame
-            frame = Frame(Image.fromarray(frame_reader.frame), frame_reader.depth)
+            frame = Frame(Image.fromarray(frame_reader.frame),
+                          frame_reader.depth if hasattr(frame_reader, 'depth') else None)
 
             if self.yolo_client.is_local_service():
                 self.yolo_client.detect_local(frame)

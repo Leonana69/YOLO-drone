@@ -3,15 +3,25 @@ syntax = "proto3";
 service YoloService {
     rpc DetectStream (DetectRequest) returns (DetectResponse) {}
     rpc Detect (DetectRequest) returns (DetectResponse) {}
+    rpc SetClasses (SetClassRequest) returns (SetClassResponse) {}
 }
 
 message DetectRequest {
     optional int32 image_id = 1;
     bytes image_data = 2; // Encoded image data
+    float conf = 3;
 }
 
 message DetectResponse {
     string json_data = 1;
+}
+
+message SetClassRequest {
+    repeated string class_names = 1;
+}
+
+message SetClassResponse {
+    string result = 1;
 }
 
 service Llama2Service {

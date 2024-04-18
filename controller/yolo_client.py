@@ -69,14 +69,20 @@ class YoloClient():
         except aiohttp.ServerTimeoutError:
             print_t(f"[Y] Timeout error when connecting to {service_url}")
 
-    def detect_local(self, frame: Frame):
+    def detect_local(self, frame: Frame, conf=0.2):
         image = frame.image
         image_bytes = YoloClient.image_to_bytes(image.resize(self.image_size))
         self.frame_queue.put(frame)
 
+        config = {
+            'user_name': 'yolo',
+            'stream_mode': True,
+            'image_id': self.image_id,
+            'conf': conf
+        }
         files = {
             'image': ('image', image_bytes),
-            'json_data': (None, json.dumps({'user_name': 'yolo', 'stream_mode': True, 'image_id': self.image_id}))
+            'json_data': (None, json.dumps(config))
         }
 
         print_t(f"[Y] Sending request to {self.service_url}")
@@ -87,18 +93,24 @@ class YoloClient():
         if self.shared_frame is not None:
             self.shared_frame.set(self.frame_queue.get(), json_results)
 
-    async def detect(self, frame: Frame):
+    async def detect(self, frame: Frame, conf=0.2):
         if self.is_local_service():
-            self.detect_local(frame)
+            self.detect_local(frame, conf)
             return
         image = frame.image
         image_bytes = YoloClient.image_to_bytes(image.resize(self.image_size))
 
         async with self.frame_id_lock:
             self.frame_queue.put((self.frame_id, frame))
+            config = {
+                'user_name': 'yolo',
+                'stream_mode': True,
+                'image_id': self.image_id,
+                'conf': conf
+            }
             files = {
                 'image': image_bytes,
-                'json_data': json.dumps({'user_name': 'yolo', 'stream_mode': True, 'image_id': self.image_id})
+                'json_data': json.dumps(config)
             }
             self.frame_id += 1
 

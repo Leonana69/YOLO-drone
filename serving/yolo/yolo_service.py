@@ -3,7 +3,6 @@ from concurrent import futures
 from PIL import Image
 from io import BytesIO
 import json
-import time
 import grpc
 import torch
 from ultralytics import YOLOWorld
@@ -26,8 +25,6 @@ def load_model():
     model = YOLOWorld(MODEL_PATH + MODEL_TYPE)
     if torch.cuda.is_available():
         device = torch.device('cuda:0')
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
     else:
         device = torch.device('cpu')
     model.to(device)
@@ -47,10 +44,15 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
         self.model = load_model()
         self.stream_mode = False
         self.port = port
+        with open(os.path.join(ROOT_PATH, "controller/assets/default_yolo_class_list.json"), "r") as f:
+            self.default_classes = json.load(f)
+            self.model.set_classes(self.default_classes)
 
     def reload_model(self):
         release_model(self.model)
         self.model = load_model()
+        self.model.set_classes(self.default_classes)
+
     
     @staticmethod
     def bytes_to_image(image_bytes):
@@ -112,6 +114,14 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
 
         image = YoloService.bytes_to_image(request.image_data)
         return hyrch_serving_pb2.DetectResponse(json_data=self.process_image(image, request.image_id))
+    
+    def SetClasses(self, request, context):
+        print(f"Received SetClasses request from {context.peer()} on port {self.port}")
+        if len(request.class_names) == 0:
+            self.model.set_classes(self.default_classes)
+        else:
+            self.model.set_classes(request.class_names)
+        return hyrch_serving_pb2.SetClassResponse(result="Success")
 
 def serve(port):
     print(f"Starting YoloService at port {port}")

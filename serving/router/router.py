@@ -45,6 +45,7 @@ async def process_yolo():
     user_name = json_data.get("user_name", "user")
     stream_mode = json_data.get("stream_mode", False)
     image_id = json_data.get("image_id", None)
+    conf = json_data.get("conf", 0.2)
 
     async with service_lock:
         channel = await grpcServiceManager.get_service_channel("yolo", dedicated=stream_mode, user_name=user_name)
@@ -53,9 +54,9 @@ async def process_yolo():
         stub = hyrch_serving_pb2_grpc.YoloServiceStub(channel)
         image_contents = image_data.read()
         if stream_mode:
-            response = await stub.DetectStream(hyrch_serving_pb2.DetectRequest(image_id=image_id, image_data=image_contents))
+            response = await stub.DetectStream(hyrch_serving_pb2.DetectRequest(image_id=image_id, image_data=image_contents, conf=conf))
         else:
-            response = await stub.Detect(hyrch_serving_pb2.DetectRequest(image_id=image_id, image_data=image_contents))
+            response = await stub.Detect(hyrch_serving_pb2.DetectRequest(image_id=image_id, image_data=image_contents, conf=conf))
     finally:
         if not stream_mode:
             await grpcServiceManager.release_service_channel("yolo", channel)
