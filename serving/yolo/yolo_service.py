@@ -45,6 +45,8 @@ def release_model(model):
 class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
     def __init__(self, port):
         self.stream_mode = False
+        self.standard_model = None
+        self.custom_model = None
         self.port = port
         with open(os.path.join(ROOT_PATH, "controller/assets/default_yolo_class_list.json"), "r") as f:
             self.default_classes = json.load(f)
