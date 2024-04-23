@@ -51,7 +51,10 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
         self.reload_model()
 
     def reload_model(self):
-        release_model(self.standard_model)
+        if self.standard_model is not None:
+            release_model(self.standard_model)
+        if self.custom_model is not None:
+            release_model(self.custom_model)
         self.standard_model = load_model()
         self.active_model = self.standard_model
         self.custom_model = load_model(world=True)
