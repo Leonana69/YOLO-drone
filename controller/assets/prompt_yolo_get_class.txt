@@ -14,6 +14,12 @@ Output: []
 Task: I need to find my shoes, my hat, and my keys.
 Output: ["shoes", "keys"]
 
+Task: Tell me what you can see.
+Output: []
+
+Task: Find something yellow and sweet.
+Output: []
+
 # Execution:
 Task: {task_description}
 Output: 

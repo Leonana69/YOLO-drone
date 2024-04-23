@@ -119,7 +119,7 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
         if len(request.class_names) == 0:
             self.model.set_classes(self.default_classes)
         else:
-            self.model.set_classes(request.class_names)
+            self.model.set_classes(self.default_classes + request.class_names)
         return hyrch_serving_pb2.SetClassResponse(result="Success")
 
 def serve(port):
