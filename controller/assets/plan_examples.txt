@@ -3,7 +3,7 @@ Scene: []
 Task: [A] Find a bottle, tell me it's height and take a picture of it.
 Previous Response:
 Execution Status:
-Response: ?s('bottle')==True{g('bottle',20);_2=oh('bottle');l(_2);tp}
+Response: ?s('bottle')==True{g('bottle',10);_2=oh('bottle');l(_2);tp}
 Reason: no bottle instance in the scene, so we use scan to find bottle, then go and use object_height to get the height and log to output the height, finally use picture to take a picture of the bottle
 
 Example 2:
@@ -11,7 +11,7 @@ Scene: [apple_5]
 Task: [A] Find an apple.
 Previous Response:
 Execution Status:
-Response: g('apple',20)
+Response: g('apple',10)
 Reason: there is an apple instance in the scene, we just go to the apple_5
 
 Example 3:
@@ -35,7 +35,7 @@ Scene: [chair_3,laptop_1,bottle_5]
 Task: [A] Find and go any edible object.
 Previous Response:
 Execution Status:
-Response: ;_1=sa('Any edible target here?');?_1!=False{g(_1,20)}
+Response: ;_1=sa('Any edible target here?');?_1!=False{g(_1,10)}
 Reason: edible object is abstract and there is no edible object in the scene, so we use scan_abstract to find the edible object
 
 Example 6:
@@ -65,9 +65,9 @@ Reason: The task is too vague, so we use log to output the advice
 Example 9:
 Scene: [chair_1 x:0.58 y:0.5 width:0.43 height:0.7 color:gray, apple_1 x:0.6 y:0.3 width:0.08 height:0.09 color:red]
 Task: [A] Turn around and go to the apple
-Previous Response: tc(180);g('apple',20)
+Previous Response: tc(180);g('apple',10)
 Execution Status: ['tc(180)']
-Response: mu(40);g('apple',20)
+Response: mu(40);g('apple',10)
 Reason: after turning around, we will do replan. We found that the chair is blocking the apple, so we use moving_up to get over the chair and then go to the apple
 
 Example 10:
@@ -75,5 +75,5 @@ Scene: [apple_1 x:0.34 y:0.3 width:0.09 height:0.1 color:red, apple_2 x:0.3 y:0.
 Task: [A] Go to biggest apple
 Previous Response:
 Execution Status:
-Response: g('apple_2',20)
+Response: g('apple_2',10)
 Reason: from the scene, we tell directly that apple_2 is the biggest apple

@@ -141,7 +141,10 @@ class LLMController():
             # if consent == 'n':
             #     print_t("[C] > Plan rejected <")
             #     return
-            ret_val = self.execute_minispec(self.current_plan)
+            try:
+                ret_val = self.execute_minispec(self.current_plan)
+            except Exception as e:
+                pass
             break
             # disable replan for now
             if ret_val.replan:

@@ -94,9 +94,9 @@ class GearWrapper(RobotWrapper):
         self.robot.send_command_position(0, 0, 0, degree)
         time.sleep(1 + degree / 90)
         self.robot.send_command_hover(0, 0, 0, 0)
-        if degree >= 90:
-            print("-> Turning CCW over 90 degrees")
-            return True, True
+        # if degree >= 90:
+        #     print("-> Turning CCW over 90 degrees")
+        #     return True, True
         return True, False
 
     def turn_cw(self, degree: int) -> Tuple[bool, bool]:
@@ -104,7 +104,7 @@ class GearWrapper(RobotWrapper):
         self.robot.send_command_position(0, 0, 0, -degree)
         time.sleep(1 + degree / 90)
         self.robot.send_command_hover(0, 0, 0, 0)
-        if degree >= 90:
-            print("-> Turning CW over 90 degrees")
-            return True, True
+        # if degree >= 90:
+        #     print("-> Turning CW over 90 degrees")
+        #     return True, True
         return True, False

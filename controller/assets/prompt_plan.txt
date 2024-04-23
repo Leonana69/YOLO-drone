@@ -28,9 +28,5 @@ Here is the 'scene description':
 Here is the 'task description':
 {task_description}
 
-Here are your previous responses and execution status, if any (otherwise they will be empty), please read them carefully and try to generate the following response accordingly:
-previous response: {previous_response}
-execution status: {execution_status}
-
 Please generate the response only with a single sentence of MiniSpec program.
 'response':

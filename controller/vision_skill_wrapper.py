@@ -16,6 +16,7 @@ class VisionSkillWrapper():
             h = round(box['y2'] - box['y1'], 2)
             info = f"{name} x:{x} y:{y} width:{w} height:{h}"
             formatted_results.append(info)
+        print(formatted_results)
         return str(formatted_results).replace("'", '')
 
     def get_obj_list(self) -> str:
@@ -30,7 +31,7 @@ class VisionSkillWrapper():
 
     def is_visible(self, object_name: str) -> Tuple[bool, bool]:
         return self.get_obj_info(object_name) is not None, False
-        
+
     def object_x(self, object_name: str) -> Tuple[Union[float, str], bool]:
         info = self.get_obj_info(object_name)
         if info is None:

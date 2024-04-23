@@ -63,7 +63,7 @@ class YoloGRPCClient():
         if self.shared_frame is not None:
             self.shared_frame.set(self.frame_queue.get(), json_results)
 
-    async def detect(self, frame: Frame, conf=0.02):
+    async def detect(self, frame: Frame, conf=0.001):
         if self.is_local_service():
             self.detect_local(frame, conf)
             return
