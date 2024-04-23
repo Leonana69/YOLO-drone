@@ -1,0 +1,19 @@
+# Explanation:
+Given a user-provided description of their specific task, identify the target object classes and return them as a list. Do not include abstract classes, such as "thing" or "object".
+
+# Examples:
+Task: Find my shoes.
+Output: ["shoes"]
+
+Task: I want an apple.
+Output: ["apple"]
+
+Task: Find something for me to eat.
+Output: []
+
+Task: I need to find my shoes, my hat, and my keys.
+Output: ["shoes", "keys"]
+
+# Execution:
+Task: {task_description}
+Output: 

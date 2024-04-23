@@ -70,7 +70,7 @@ class VisionSkillWrapper():
         if mid_point[0] < 0.5 - FOV_X / 2 or mid_point[0] > 0.5 + FOV_X / 2 \
         or mid_point[1] < 0.5 - FOV_Y / 2 or mid_point[1] > 0.5 + FOV_Y / 2:
             return 'object is not in center', False
-        depth = self.shared_frame.get_depth()
+        depth = self.shared_frame.get_depth().data
         start_x = 0.5 - FOV_X / 2
         start_y = 0.5 - FOV_Y / 2
         index_x = (mid_point[0] - start_x) / FOV_X * (depth.shape[1] - 1)

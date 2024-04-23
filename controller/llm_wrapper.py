@@ -3,8 +3,8 @@ import openai
 
 openai.organization = "org-sAnQwPNnbSrHg1XyR4QYALf7"
 openai.api_key = os.environ.get('OPENAI_API_KEY')
-# MODEL_NAME = "gpt-3.5-turbo-16k"
-MODEL_NAME = "gpt-4"
+GPT3 = "gpt-3.5-turbo-16k"
+GPT4 = "gpt-4"
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 chat_log_path = os.path.join(CURRENT_DIR, "assets/chat_log.txt")
@@ -15,7 +15,7 @@ class LLMWrapper:
         # clean chat_log
         open(chat_log_path, "w").close()
 
-    def request(self, prompt, model_name=MODEL_NAME):
+    def request(self, prompt, model_name=GPT4):
         response = openai.chat.completions.create(
             model=model_name,
             messages=[{"role": "user", "content": prompt}],

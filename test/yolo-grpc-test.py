@@ -1,11 +1,7 @@
 from io import BytesIO
 from PIL import Image
-from typing import Optional, Tuple
-
 import json, sys, os
-import queue
 import grpc
-import asyncio
 
 def image_to_bytes(image):
     # compress and convert the image to bytes

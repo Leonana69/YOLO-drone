@@ -69,7 +69,7 @@ class LLMController():
         self.low_level_skillset.add_skill(LowLevelSkillItem("object_width", self.vision.object_width, "Get object's width in (0,1)", args=[SkillArg("object_name", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("object_height", self.vision.object_height, "Get object's height in (0,1)", args=[SkillArg("object_name", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("object_dis", self.vision.object_distance, "Get object's distance in cm", args=[SkillArg("object_name", str)]))
-        self.low_level_skillset.add_skill(LowLevelSkillItem("probe", self.planner.request_execution, "Probe the LLM for reasoning", args=[SkillArg("question", str)]))
+        self.low_level_skillset.add_skill(LowLevelSkillItem("probe", self.planner.probe, "Probe the LLM for reasoning", args=[SkillArg("question", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("log", self.skill_log, "Output text to console", args=[SkillArg("text", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("take_picture", self.skill_take_picture, "Take a picture"))
         self.low_level_skillset.add_skill(LowLevelSkillItem("re_plan", self.skill_re_plan, "Replanning"))
@@ -131,8 +131,9 @@ class LLMController():
             return
         self.append_message('[TASK]: ' + task_description)
         while True:
+            self.yolo_client.set_class(self.planner.get_class(task_description))
             t1 = time.time()
-            self.current_plan = self.planner.request_planning(task_description, previous_response=self.current_plan, execution_status=self.execution_status)
+            self.current_plan = self.planner.plan(task_description, previous_response=self.current_plan, execution_status=self.execution_status)
             t2 = time.time()
             print_t(f"[C] Planning time: {t2 - t1}")
             self.append_message('[PLAN]: ' + self.current_plan + f', received in ({t2 - t1:.2f}s)')

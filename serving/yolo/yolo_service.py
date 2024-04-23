@@ -85,11 +85,11 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
             formatted_result.append(result)
         return formatted_result
     
-    def process_image(self, image, id=None):
+    def process_image(self, image, id=None, conf=0.4):
         if self.stream_mode:
-            result = self.model.track(image, verbose=False, persist=True)[0]
+            result = self.model.track(image, verbose=False, persist=True, conf=conf)[0]
         else:
-            result = self.model(image, verbose=False)[0]
+            result = self.model(image, verbose=False, conf=conf)[0]
         result = {
             "image_id": id,
             "result": YoloService.format_result(result)
@@ -103,7 +103,7 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
             self.reload_model()
         
         image = YoloService.bytes_to_image(request.image_data)
-        return hyrch_serving_pb2.DetectResponse(json_data=self.process_image(image, request.image_id))
+        return hyrch_serving_pb2.DetectResponse(json_data=self.process_image(image, request.image_id, request.conf))
     
     def Detect(self, request, context):
         print(f"Received Detect request from {context.peer()} on port {self.port}, image_id: {request.image_id}")
@@ -112,7 +112,7 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
             self.reload_model()
 
         image = YoloService.bytes_to_image(request.image_data)
-        return hyrch_serving_pb2.DetectResponse(json_data=self.process_image(image, request.image_id))
+        return hyrch_serving_pb2.DetectResponse(json_data=self.process_image(image, request.image_id, request.conf))
     
     def SetClasses(self, request, context):
         print(f"Received SetClasses request from {context.peer()} on port {self.port}")

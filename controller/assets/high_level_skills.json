@@ -1,27 +1,32 @@
 [
     {
         "skill_name": "scan",
-        "skill_description": "Rotate to find a certain object when it's *not* in current scene",
+        "skill_description": "Rotate to find object $1 when it's *not* in current scene",
         "definition": "8{?iv($1)==True{->True}tc(45)}->False"
     },
     {
         "skill_name": "scan_abstract",
-        "skill_description": "Rotate to find an abstract object by a description when it's *not* in current scene",
+        "skill_description": "Rotate to find an abstract object by a description $1 when it's *not* in current scene",
         "definition": "8{_1=p($1);?_1!=False{->_1}tc(45)}->False"
     },
     {
         "skill_name": "orienting",
-        "skill_description": "Rotate to align with a certain object",
+        "skill_description": "Rotate to align with object $1",
         "definition": "4{_1=ox($1);?_1>0.6{tc(15)};?_1<0.4{tu(15)};_2=ox($1);?_2<0.6&_2>0.4{->True}}->rp"
     },
     {
         "skill_name": "approach",
-        "skill_description": "Approach a certain object",
+        "skill_description": "Approach object $1 with distance $2",
         "definition": "10{orienting($1);?od($1)<int($2){->True}mf(10)}->False"
     },
     {
         "skill_name": "goto",
-        "skill_description": "Go to a certain object",
+        "skill_description": "Go to object $1 with distance $2",
         "definition": "orienting($1);approach($1,$2)"
+    },
+    {
+        "skill_name": "follow",
+        "skill_description": "Follow $1 object",
+        "definition": "10{goto($1,30);delay(500)}"
     }
 ]
