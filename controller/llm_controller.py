@@ -132,6 +132,7 @@ class LLMController():
         self.append_message('[TASK]: ' + task_description)
         while True:
             self.yolo_client.set_class(self.planner.get_class(task_description))
+            time.sleep(0.5)
             t1 = time.time()
             self.current_plan = self.planner.plan(task_description, previous_response=self.current_plan, execution_status=self.execution_status)
             t2 = time.time()

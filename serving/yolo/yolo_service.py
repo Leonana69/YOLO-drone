@@ -128,7 +128,7 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
         if len(request.class_names) == 0:
             self.active_model = self.standard_model
         else:
-            self.custom_model.set_classes(self.default_classes + request.class_names)
+            self.custom_model.set_classes(self.default_classes + list(request.class_names))
             self.active_model = self.custom_model
         return hyrch_serving_pb2.SetClassResponse(result="Success")
 
