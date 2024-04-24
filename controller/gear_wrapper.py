@@ -48,7 +48,13 @@ class GearWrapper(RobotWrapper):
     def move_forward(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving forward {distance} cm")
         while distance > 0:
-            print(self.robot.sensor_data.depth.data[3,:])
+            front_dis = self.robot.sensor_data.depth.data[3,:]
+            for i in range(8):
+                if front_dis[i] < 0:
+                    if front_dis[i] < 0.3:
+                        print("-> Obstacle detected")
+                        self.robot.send_command_hover(0, 0, 0, 0)
+                        return False, False
             self.robot.send_command_hover(0, self.move_speed_x, 0, 0)
             time.sleep(0.1)
             distance -= 2
