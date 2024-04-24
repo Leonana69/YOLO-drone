@@ -67,7 +67,7 @@ while True:
     if not ret:
         break
     # detect
-    result = format_result(model(frame, conf=0.1)[0])
+    result = format_result(model.track(frame, conf=0.1, persist=True, tracker="bytetrack.yaml")[0])
     plot_results(frame, result)
     has_person = False
     for item in result:

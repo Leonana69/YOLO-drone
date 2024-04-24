@@ -48,6 +48,7 @@ class GearWrapper(RobotWrapper):
     def move_forward(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving forward {distance} cm")
         while distance > 0:
+            print(self.robot.sensor_data.depth.data[3,:])
             self.robot.send_command_hover(0, self.move_speed_x, 0, 0)
             time.sleep(0.1)
             distance -= 2

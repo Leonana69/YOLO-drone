@@ -96,7 +96,7 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
     
     def process_image(self, image, id=None, conf=0.4):
         if self.stream_mode:
-            result = self.active_model.track(image, verbose=False, persist=True, conf=conf)[0]
+            result = self.active_model.track(image, verbose=False, persist=True, conf=conf, tracker="bytetrack.yaml")[0]
         else:
             result = self.active_model(image, verbose=False, conf=conf)[0]
         result = {

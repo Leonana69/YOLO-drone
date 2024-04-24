@@ -132,6 +132,7 @@ class LLMController():
             self.append_message("[Warning] Controller is waiting for takeoff...")
             return
         self.append_message('[TASK]: ' + task_description)
+        ret_val = None
         while True:
             self.yolo_client.set_class(self.planner.get_class(task_description))
             time.sleep(0.5)
