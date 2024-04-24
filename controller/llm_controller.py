@@ -116,7 +116,9 @@ class LLMController():
     def get_latest_frame(self, plot=False):
         image = self.shared_frame.get_image()
         if plot and image:
-            YoloClient.plot_results(image, self.shared_frame.get_yolo_result().get('result'))
+            # YoloClient.plot_results(image, self.shared_frame.get_yolo_result().get('result'))
+            self.vision.update()
+            YoloClient.plot_results_oi(image, self.vision.object_list)
         return image
     
     def execute_minispec(self, minispec: str):
@@ -145,7 +147,7 @@ class LLMController():
             try:
                 ret_val = self.execute_minispec(self.current_plan)
             except Exception as e:
-                pass
+                print_t(f"[C] Error: {e}")
             break
             # disable replan for now
             if ret_val.replan:
@@ -153,7 +155,7 @@ class LLMController():
                 continue
             else:
                 break
-        self.append_message(f'Task complete with {ret_val.value}')
+        self.append_message(f'Task complete with {ret_val.value if ret_val else None}')
         self.append_message('end')
         self.current_plan = None
         self.execution_status = None

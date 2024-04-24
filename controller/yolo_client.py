@@ -54,6 +54,19 @@ class YoloClient():
                         fill=None, outline='blue', width=4)
             draw.text((str_float_to_int(box["x1"], w), str_float_to_int(box["y1"], h) - 50), result["name"], fill='red', font=font)
 
+    def plot_results_oi(frame, object_list):
+        if object_list is None or len(object_list) == 0:
+            return
+        def str_float_to_int(value, multiplier):
+            return int(float(value) * multiplier)
+        draw = ImageDraw.Draw(frame)
+        font = ImageFont.truetype(os.path.join(DIR, "assets/Roboto-Medium.ttf"), size=50)
+        w, h = frame.size
+        for obj in object_list:
+            draw.rectangle((str_float_to_int(obj.x - obj.w / 2, w), str_float_to_int(obj.y - obj.h / 2, h), str_float_to_int(obj.x + obj.w / 2, w), str_float_to_int(obj.y + obj.h / 2, h)),
+                        fill=None, outline='blue', width=4)
+            draw.text((str_float_to_int(obj.x - obj.w / 2, w), str_float_to_int(obj.y - obj.h / 2, h) - 50), obj.name, fill='red', font=font)
+
     def retrieve(self) -> Optional[SharedFrame]:
         return self.shared_frame
     

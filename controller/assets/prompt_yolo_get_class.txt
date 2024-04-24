@@ -1,5 +1,5 @@
 # Explanation:
-Given a user-provided description of their specific task, identify the target object classes and return them as a list. Do not include abstract classes, such as "thing" or "object".
+Given a user-provided description of their specific task, identify the target object classes and return them as a list. Please do not include abstract classes, such as "something" or "object", just reply with the most specific object names. If no target object classes are found, return an empty list.
 
 # Examples:
 Task: Find my shoes.

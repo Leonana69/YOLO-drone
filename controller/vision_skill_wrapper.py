@@ -1,32 +1,100 @@
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
+import numpy as np
+import time
+from filterpy.kalman import KalmanFilter
 from .shared_frame import SharedFrame
+
+class ObjectInfo:
+    def __init__(self, name, x, y, w, h) -> None:
+        self.name = name
+        self.x = float(x)
+        self.y = float(y)
+        self.w = float(w)
+        self.h = float(h)
+
+    def __str__(self) -> str:
+        return f"{self.name} x:{self.x:.2f} y:{self.y:.2f} width:{self.w:.2f} height:{self.h:.2f}"
+
+class ObjectTracker:
+    def __init__(self, name, x, y, w, h) -> None:
+        self.name = name
+        self.kf = self.init_filter()
+        self.timestamp = 0
+        self.size = None
+        self.update(x, y, w, h)
+
+    def update(self, x, y, w, h):
+        self.kf.update((x, y))
+        self.size = (w, h)
+        self.timestamp = time.time()
+
+    def predict(self) -> Optional[ObjectInfo]:
+        # if no update in 2 seconds, return None
+        if time.time() - self.timestamp > 0.3:
+            return None
+        self.kf.predict()
+        return ObjectInfo(self.name, self.kf.x[0][0], self.kf.x[1][0], self.size[0], self.size[1])
+
+    def init_filter(self):
+        kf = KalmanFilter(dim_x=4, dim_z=2)  # 4 state dimensions (x, y, vx, vy), 2 measurement dimensions (x, y)
+        kf.F = np.array([[1, 0, 1, 0],  # State transition matrix
+                        [0, 1, 0, 1],
+                        [0, 0, 1, 0],
+                        [0, 0, 0, 1]])
+        kf.H = np.array([[1, 0, 0, 0],  # Measurement function
+                        [0, 1, 0, 0]])
+        kf.R *= 2  # Measurement uncertainty
+        kf.P *= 1000  # Initial uncertainty
+        kf.Q *= 0.01  # Process uncertainty
+        return kf
 
 class VisionSkillWrapper():
     def __init__(self, shared_frame: SharedFrame):
         self.shared_frame = shared_frame
-
-    def format_results(results):
-        formatted_results = []
-        for item in results['result']:
-            box = item['box']
-            name = item['name']
-            x = round((box['x1'] + box['x2']) / 2, 2)
-            y = round((box['y1'] + box['y2']) / 2, 2)
-            w = round(box['x2'] - box['x1'], 2)
-            h = round(box['y2'] - box['y1'], 2)
-            info = f"{name} x:{x} y:{y} width:{w} height:{h}"
-            formatted_results.append(info)
-        print(formatted_results)
-        return str(formatted_results).replace("'", '')
+        self.last_update = 0
+        self.object_trackers = {}
+        self.object_list = []
+    
+    def update(self):
+        if self.shared_frame.timestamp == self.last_update:
+            return
+        self.last_update = self.shared_frame.timestamp
+        objs = self.shared_frame.get_yolo_result()['result']
+        for obj in objs:
+            name = obj['name']
+            box = obj['box']
+            x = (box['x1'] + box['x2']) / 2
+            y = (box['y1'] + box['y2']) / 2
+            w = box['x2'] - box['x1']
+            h = box['y2'] - box['y1']
+            if name not in self.object_trackers:
+                self.object_trackers[name] = ObjectTracker(name, x, y, w, h)
+            else:
+                self.object_trackers[name].update(x, y, w, h)
+        
+        self.object_list = []
+        to_delete = []
+        for name, tracker in self.object_trackers.items():
+            obj = tracker.predict()
+            if obj is not None:
+                self.object_list.append(obj)
+            else:
+                to_delete.append(name)
+        for name in to_delete:
+            del self.object_trackers[name]
 
     def get_obj_list(self) -> str:
-        return VisionSkillWrapper.format_results(self.shared_frame.get_yolo_result())
+        self.update()
+        str_list = []
+        for obj in self.object_list:
+            str_list.append(str(obj))
+        return str(str_list).replace("'", '')
 
-    def get_obj_info(self, object_name: str) -> dict:
-        for item in self.shared_frame.get_yolo_result().get('result', []):
-            # change this to start_with
-            if item['name'].startswith(object_name):
-                return item
+    def get_obj_info(self, object_name: str) -> ObjectInfo:
+        self.update()
+        for obj in self.object_list:
+            if obj.name.startswith(object_name):
+                return obj
         return None
 
     def is_visible(self, object_name: str) -> Tuple[bool, bool]:
@@ -36,36 +104,31 @@ class VisionSkillWrapper():
         info = self.get_obj_info(object_name)
         if info is None:
             return f'object_x: {object_name} is not in sight', True
-        box = info['box']
-        return (box['x1'] + box['x2']) / 2, False
+        return info.x, False
     
     def object_y(self, object_name: str) -> Tuple[Union[float, str], bool]:
         info = self.get_obj_info(object_name)
         if info is None:
             return f'object_y: {object_name} is not in sight', True
-        box = info['box']
-        return (box['y1'] + box['y2']) / 2, False
+        return info.y, False
     
     def object_width(self, object_name: str) -> Tuple[Union[float, str], bool]:
         info = self.get_obj_info(object_name)
         if info is None:
             return f'object_width: {object_name} not in sight', True
-        box = info['box']
-        return box['x2'] - box['x1'], False
+        return info.w, False
     
     def object_height(self, object_name: str) -> Tuple[Union[float, str], bool]:
         info = self.get_obj_info(object_name)
         if info is None:
             return f'object_height: {object_name} not in sight', True
-        box = info['box']
-        return box['y2'] - box['y1'], False
+        return info.h, False
     
     def object_distance(self, object_name: str) -> Tuple[Union[int, str], bool]:
         info = self.get_obj_info(object_name)
         if info is None:
             return f'object_distance: {object_name} not in sight', True
-        box = info['box']
-        mid_point = ((box['x1'] + box['x2']) / 2, (box['y1'] + box['y2']) / 2)
+        mid_point = (info.x, info.y)
         FOV_X = 0.42
         FOV_Y = 0.55
         if mid_point[0] < 0.5 - FOV_X / 2 or mid_point[0] > 0.5 + FOV_X / 2 \

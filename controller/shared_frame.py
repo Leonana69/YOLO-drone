@@ -3,6 +3,7 @@ from typing import Optional
 from numpy.typing import NDArray
 import numpy as np
 import threading
+import time
 
 class Frame():
     def __init__(self, image: Image.Image, depth: Optional[NDArray[np.int16]]=None):
@@ -27,6 +28,7 @@ class Frame():
 
 class SharedFrame():
     def __init__(self):
+        self.timestamp = 0
         self.frame = Frame(None)
         self.yolo_result = {}
         self.lock = threading.Lock()
@@ -46,4 +48,5 @@ class SharedFrame():
     def set(self, frame: Frame, yolo_result: dict):
         with self.lock:
             self.frame = frame
+            self.timestamp = time.time()
             self.yolo_result = yolo_result

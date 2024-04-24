@@ -1,8 +1,7 @@
 from ultralytics import YOLOWorld
 import cv2
 
-model = YOLOWorld('yolov8x-worldv2.pt')
-model.set_classes(["shoe"])
+model = YOLOWorld('yolov8s-worldv2.pt')
 
 def format_result(yolo_result):
     if yolo_result.probs is not None:
@@ -47,12 +46,41 @@ def plot_results(frame, results):
         cv2.putText(frame, f'{result["confidence"]:.2f}', (str_float_to_int(box["x1"], w), str_float_to_int(box["y1"], h) - 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 # open camera
 cap = cv2.VideoCapture(0)
+from filterpy.kalman import KalmanFilter
+import numpy as np
+def init_filter():
+    kf = KalmanFilter(dim_x=4, dim_z=2)  # 4 state dimensions (x, y, vx, vy), 2 measurement dimensions (x, y)
+    kf.F = np.array([[1, 0, 1, 0],  # State transition matrix
+                    [0, 1, 0, 1],
+                    [0, 0, 1, 0],
+                    [0, 0, 0, 1]])
+    kf.H = np.array([[1, 0, 0, 0],  # Measurement function
+                    [0, 1, 0, 0]])
+    kf.R *= 1  # Measurement uncertainty
+    kf.P *= 1000  # Initial uncertainty
+    kf.Q *= 0.01  # Process uncertainty
+    return kf
+
+kf = init_filter()
 while True:
     ret, frame = cap.read()
     if not ret:
         break
     # detect
-    plot_results(frame, format_result(model(frame, conf=0.01)[0]))
+    result = format_result(model(frame, conf=0.1)[0])
+    plot_results(frame, result)
+    has_person = False
+    for item in result:
+        if item["name"].startswith('suitcase'):
+            has_person = True
+            loc_x = (item["box"]["x1"] + item["box"]["x2"]) / 2
+            loc_y = (item["box"]["y1"] + item["box"]["y2"]) / 2
+            kf.update((loc_x, loc_y))
+
+    kf.predict()
+
+    print(kf.x, frame.shape[0], frame.shape[1])
+    cv2.circle(frame, (int(kf.x[0] * frame.shape[1]), int(kf.x[1] * frame.shape[0])), 5, (0, 255, 0), -1)
     # print(model(frame, conf=0.01))
     # exit(0)
     # display
