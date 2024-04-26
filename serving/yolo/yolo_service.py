@@ -47,15 +47,19 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
     def __init__(self, port):
         self.stream_mode = False
         self.custom_target = False
-        self.model = load_model()
+        self.standard_model = load_model()
+        self.custom_model = load_model(world=True)
         self.port = port
         with open(os.path.join(ROOT_PATH, "controller/assets/default_yolo_class_list.json"), "r") as f:
             self.default_classes = json.load(f)
 
     def reload_model(self):
-        if self.model is not None:
-            release_model(self.model)
-        self.model = load_model(self.custom_target)
+        if self.custom_model is not None:
+            release_model(self.custom_model)
+        if self.standard_model is not None:
+            release_model(self.standard_model)
+        self.standard_model = load_model()
+        self.custom_model = load_model(world=True)
 
     @staticmethod
     def bytes_to_image(image_bytes):
@@ -91,12 +95,17 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
     
     def process_image(self, image, id=None, conf=0.3):
         if self.stream_mode:
-            result = self.model.track(image, verbose=False, persist=True, conf=conf, tracker="bytetrack.yaml")[0]
+            result = self.standard_model.track(image, verbose=False, persist=True, conf=conf, tracker="bytetrack.yaml")[0]
+            if self.custom_target:
+                result_custom = self.custom_model.track(image, verbose=False, conf=0.01, tracker="bytetrack.yaml")[0]
         else:
-            result = self.model(image, verbose=False, conf=conf)[0]
+            result = self.standard_model(image, verbose=False, conf=conf)[0]
+            if self.custom_target:
+                result_custom = self.custom_model(image, verbose=False, conf=0.01)[0]
         result = {
             "image_id": id,
-            "result": YoloService.format_result(result)
+            "result": YoloService.format_result(result),
+            "custom_target": YoloService.format_result(result_custom) if self.custom_target else []
         }
         return json.dumps(result)
 
@@ -120,15 +129,12 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
     
     def SetClasses(self, request, context):
         print(f"Received SetClasses request from {context.peer()} on port {self.port}")
-        if len(request.class_names) == 1 and request.class_names[0] == "default" and self.custom_target:
-            self.custom_target = False
-            self.model = load_model()
-        elif not self.custom_target:
+        if len(request.class_names) > 0:
             self.custom_target = True
-            self.model = load_model(world=True)
-        
-        if self.custom_target and len(request.class_names) > 0:
-            self.model.set_classes(self.default_classes + list(request.class_names))
+            self.custom_model.set_classes(self.default_classes + list(request.class_names))
+        else:
+            self.custom_target = False
+
         return hyrch_serving_pb2.SetClassResponse(result="Success")
 
 def serve(port):

@@ -26,9 +26,6 @@ class YoloGRPCClient():
     def __init__(self, shared_frame: SharedFrame=None):
         channel = grpc.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
         self.stub = hyrch_serving_pb2_grpc.YoloServiceStub(channel)
-
-        # channel_async = grpc.aio.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
-        # self.stub_async = hyrch_serving_pb2_grpc.YoloServiceStub(channel_async)
         self.is_async_inited = False
         self.image_size = (640, 352)
         self.frame_queue = queue.Queue()
