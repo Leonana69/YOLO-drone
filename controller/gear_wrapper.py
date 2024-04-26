@@ -1,12 +1,17 @@
-import time
+import time, os
 from typing import Tuple
 from .abs.robot_wrapper import RobotWrapper
 from podtp import Podtp
+import torch
+import torch.nn as nn
+import numpy as np
 
-DEFAULT_NO_VALID_READING = 100
+DEFAULT_NO_VALID_READING = 0
 SAFE_DISTANCE_THRESHOLD = 250
 SIDE_DISTANCE_THRESHOLD = 65
 JUMP_DISTANCE_THRESHOLD = 60
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def clean_sensor_data(raw_data):
     cleaned_data = raw_data[:]  # Create a copy of the raw data for cleaning
@@ -44,84 +49,42 @@ def clean_sensor_data(raw_data):
 
     return cleaned_data
 
-def all_values_similar(distances, tolerance=100):
-    # Check if all values are within a certain tolerance
-    mean_distance = sum(distances) / len(distances)
-    return all(abs(distance - mean_distance) < tolerance for distance in distances)
+# Define the model
+class DirectionPredictor(nn.Module):
+    def __init__(self):
+        super(DirectionPredictor, self).__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear(24, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, 3)
+        )
+        self.mean = 381.9494323730469
+        self.std = 306.9201965332031
 
-def significant_jump_detected(distances):
-    # Detect significant jumps and evaluate sections
-    jumps = []
-    for i in range(1, len(distances)):
-        if abs(distances[i] - distances[i - 1]) >= JUMP_DISTANCE_THRESHOLD \
-            and (distances[i] < SAFE_DISTANCE_THRESHOLD or distances[i - 1] < SAFE_DISTANCE_THRESHOLD):  # threshold for significant jump
-            jumps.append(i)
-
-    # Return list of jump positions
-    return jumps
-
-def evaluate_segments(distances, jumps, front=False):
-    segments = []
-    if len(jumps) == 0 and front:
-        return segments
-    start = 0
-    for jump in jumps + [len(distances)]:
-        segment = distances[start:jump]
-        average_distance = sum(segment) / len(segment)
-        if average_distance < SAFE_DISTANCE_THRESHOLD:  # Safe distance threshold
-            segments.append({'start': start,
-                             'end': jump,
-                             'length': jump - start,
-                             'average_distance': average_distance})
-        start = jump
-    return segments
-
-def find_largest_gap(segments, distances):
-    if not segments:
-        return "forward"  # No free segments, continue forward
-
-    # Find any segment longer than 4
-    # freeway_segments = [seg for seg in segments if seg['length'] >= 3]
-    # if freeway_segments:
-    #     # Find the largest freeway segment
-    #     largest_freeway = max(freeway_segments, key=lambda x: x['length'])
-    #     mid_index = (largest_freeway['start'] + largest_freeway['end']) // 2
-    #     if mid_index < len(distances) / 2:
-    #         return "right"  # More space on the left, so turn right
-    #     else:
-    #         return "left"  # More space on the right, so turn left
-
-    # # If no segment is longer than 4, choose the largest available segment
-    # largest_segment = max(segments, key=lambda x: x['length'])
-    # mid_index = (largest_segment['start'] + largest_segment['end']) // 2
-    # if mid_index < len(distances) / 2:
-    #     return "left"
-    # else:
-    #     return "right"
-    weighted_sum = 0
-    mass = 0
-    for seg in segments:
-        for i in range(seg['start'], seg['end']):
-            weighted_sum += i
-            mass += 1
-
-    mid_index = weighted_sum // mass
-    return "left" if mid_index > (len(distances) - 1) / 2 else "right"
+    def forward(self, x):
+        x = self.flatten(x)
+        logits = self.linear_relu_stack(x)
+        return logits
 
 class GearWrapper(RobotWrapper):
     def __init__(self):
         self.stream_on = False
         config = {
-            'ip2': '192.168.8.169',
-            'ip': '192.168.8.195',
+            'ip': '192.168.8.116',
+            'ip1': '192.168.8.195',
             'port': 80,
             'stream_port': 81
         }
         self.robot = Podtp(config)
         self.move_speed_x = 2.5
         self.move_speed_y = 2.8
-        self.rotate_speed = 15
         self.unlock_count = 0
+        self.model = DirectionPredictor()
+        self.model.load_state_dict(torch.load(os.path.join(CURRENT_DIR, 'assets/model.pth')))
+        self.model.eval()
 
     def keep_active(self):
         self.unlock_count += 1
@@ -154,39 +117,6 @@ class GearWrapper(RobotWrapper):
             return None
         return self.robot.sensor_data
     
-    def front_blocked(self) -> int:
-        front_dis = self.robot.sensor_data.depth.data[3,:]
-        front_dis = clean_sensor_data(front_dis)
-        print(f"Front distance: {front_dis}")
-        if min(front_dis) > SAFE_DISTANCE_THRESHOLD:
-            return -1
-        if all_values_similar(front_dis) and min(front_dis) < 140:
-            return -2
-        else:
-            segments = evaluate_segments(front_dis, significant_jump_detected(front_dis), True)
-            if len(segments) == 0:
-                return -1
-            direction = find_largest_gap(segments, front_dis)
-            if direction == "forward":
-                return -1
-            elif direction == "left":
-                return 1
-            else:
-                return 0
-            
-    def side_distance(self, left=True) -> int:
-        index = 0 if left else 7
-        left_dis = self.robot.sensor_data.depth.data[index,:]
-        left_dis = clean_sensor_data(left_dis)
-        # segments = evaluate_segments(left_dis, significant_jump_detected(left_dis))
-        # min_dist = 99999
-        # for seg in segments:
-        #     if seg['average_distance'] < min_dist:
-        #         min_dist = seg['average_distance']
-        min_dist = min(left_dis)
-        print(f"{left} distance: {min_dist}")
-        return min_dist
-    
     def move_forward(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving forward {distance} cm")
         self.robot.send_command_hover(0, 0, 0, 0)
@@ -195,26 +125,18 @@ class GearWrapper(RobotWrapper):
             if small_move:
                 self.robot.send_command_hover(0, self.move_speed_x, 0, 0)
             else:
-                dir = self.front_blocked()
-                while dir != -1:
-                    if dir == -2:
-                        print("Front blocked by an object")
-                        self.robot.send_command_hover(0, 0, 0, 0)
-                        if max(self.robot.sensor_data.depth.data[0,:]) > SAFE_DISTANCE_THRESHOLD:
-                            self.turn_ccw(45)
-                        elif max(self.robot.sensor_data.depth.data[7,:]) > SAFE_DISTANCE_THRESHOLD:
-                            self.turn_cw(45)
-                        else:
-                            self.turn_ccw(180)
-                    if dir != -1:
-                        if dir == 0:
-                            self.turn_cw(30)
-                        elif dir == 1:
-                            self.turn_ccw(30)
-                    dir = self.front_blocked()
-                vy = 0
-                left_margin = self.side_distance(True)
-                right_margin = self.side_distance(False)
+                array = self.robot.sensor_data.depth.data
+                left_distance = clean_sensor_data(array[0, :])
+                front_distance = clean_sensor_data(array[2, :])
+                right_distance = clean_sensor_data(array[7, :])
+                x = np.concatenate((left_distance, front_distance, right_distance))
+                x = torch.tensor(x, dtype=torch.float32)
+                x = (x - self.model.mean) / self.model.std
+                y = self.model(x.unsqueeze(0)).squeeze(0)
+                command = torch.argmax(y).item() - 1
+                
+                left_margin = min(left_distance)
+                right_margin = min(right_distance)
                 if left_margin > SIDE_DISTANCE_THRESHOLD and right_margin > SIDE_DISTANCE_THRESHOLD:
                     vy = 0
                 elif left_margin > SIDE_DISTANCE_THRESHOLD:
@@ -227,8 +149,13 @@ class GearWrapper(RobotWrapper):
                             vy = 1.5
                         else:
                             vy = -1.5
-                print(vy)
-                self.robot.send_command_hover(0, self.move_speed_x, vy, 0)
+
+                if command == 0:
+                    self.robot.send_command_hover(0, self.move_speed_x, vy, 0)
+                elif command == 1:
+                    self.turn_ccw(30)
+                elif command == -1:
+                    self.turn_cw(30)
             time.sleep(0.1)
             distance -= 2
         self.robot.send_command_hover(0, 0, 0, 0)
