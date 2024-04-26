@@ -105,7 +105,7 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
         result = {
             "image_id": id,
             "result": YoloService.format_result(result),
-            "custom_target": YoloService.format_result(result_custom) if self.custom_target else []
+            "result_custom": YoloService.format_result(result_custom) if self.custom_target else []
         }
         return json.dumps(result)
 

@@ -1,8 +1,9 @@
-from ultralytics import YOLOWorld
+from ultralytics import YOLOWorld, YOLO
 import cv2
 
-model = YOLOWorld('yolov8s-worldv2.pt')
-model.set_class(['suitcase', 'person'])
+# model = YOLOWorld('yolov8s-worldv2.pt')
+model = YOLO('yolov8s.pt')
+# model.set_class(['suitcase', 'person'])
 
 def format_result(yolo_result):
     if yolo_result.probs is not None:
@@ -68,7 +69,10 @@ while True:
     if not ret:
         break
     # detect
-    result = format_result(model.track(frame, conf=0.1, persist=True, tracker="bytetrack.yaml")[0])
+    inference = model(frame, conf=0.1)
+    print(inference)
+    result = format_result(inference[0])
+    # result = format_result(model.track(frame, conf=0.1, persist=True, tracker="bytetrack.yaml")[0])
     plot_results(frame, result)
     has_person = False
     for item in result:

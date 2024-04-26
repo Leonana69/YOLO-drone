@@ -12,6 +12,8 @@ from .utils import print_t
 
 PARENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+DEFAULT_YOLO_LIST = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush']
+
 sys.path.append(os.path.join(PARENT_DIR, "proto/generated"))
 import hyrch_serving_pb2
 import hyrch_serving_pb2_grpc
@@ -52,7 +54,11 @@ class YoloGRPCClient():
     
     def set_class(self, class_names: List[str]):
         print_t(f"Set classes: {class_names}")
-        class_request = hyrch_serving_pb2.SetClassRequest(class_names=class_names)
+        to_set = []
+        for class_name in class_names:
+            if class_name not in DEFAULT_YOLO_LIST:
+                to_set.append(class_name)
+        class_request = hyrch_serving_pb2.SetClassRequest(class_names=to_set)
         self.stub.SetClasses(class_request)
     
     def detect_local(self, frame: Frame, conf=0.2):
@@ -67,7 +73,7 @@ class YoloGRPCClient():
         if self.shared_frame is not None:
             self.shared_frame.set(self.frame_queue.get(), json_results)
 
-    async def detect(self, frame: Frame, conf=0.1):
+    async def detect(self, frame: Frame, conf=0.3):
         if not self.is_async_inited:
             self.init_async_channel()
 
@@ -86,7 +92,6 @@ class YoloGRPCClient():
         response = await self.stub_async.DetectStream(detect_request)
     
         json_results = json.loads(response.json_data)
-        print_t(f"[Y] Results: {json_results}")
         if self.frame_queue.empty():
             return
         # discard old images
