@@ -131,7 +131,7 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
         print(f"Received SetClasses request from {context.peer()} on port {self.port}")
         if len(request.class_names) > 0:
             self.custom_target = True
-            self.custom_model.set_classes(self.default_classes + list(request.class_names))
+            self.custom_model.set_classes(list(request.class_names))
         else:
             self.custom_target = False
 

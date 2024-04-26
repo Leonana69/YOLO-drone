@@ -86,6 +86,7 @@ class YoloGRPCClient():
         response = await self.stub_async.DetectStream(detect_request)
     
         json_results = json.loads(response.json_data)
+        print_t(f"[Y] Results: {json_results}")
         if self.frame_queue.empty():
             return
         # discard old images

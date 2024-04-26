@@ -26,7 +26,7 @@ class LLMController():
             self.yolo_client = YoloClient(shared_frame=self.shared_frame)
         else:
             self.yolo_client = YoloGRPCClient(shared_frame=self.shared_frame)
-            self.yolo_client.set_class([])
+            self.yolo_client.set_class(['shoe'])
         self.vision = VisionSkillWrapper(self.shared_frame)
         self.latest_frame = None
         self.controller_active = True

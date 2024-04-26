@@ -24,5 +24,8 @@ stub = hyrch_serving_pb2_grpc.YoloServiceStub(channel)
 detect_request = hyrch_serving_pb2.DetectRequest(image_data=image_to_bytes(Image.open("./images/kitchen.webp")), conf=0.3)
 response = stub.DetectStream(detect_request)
 
+class_request = hyrch_serving_pb2.SetClassRequest(class_names=['shoes'])
+stub.SetClasses(class_request)
+
 json_results = json.loads(response.json_data)
 print(json_results)
