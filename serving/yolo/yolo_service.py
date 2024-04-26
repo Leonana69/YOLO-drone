@@ -46,22 +46,16 @@ def release_model(model):
 class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
     def __init__(self, port):
         self.stream_mode = False
-        self.standard_model = None
-        self.custom_model = None
+        self.custom_target = False
+        self.model = load_model()
         self.port = port
         with open(os.path.join(ROOT_PATH, "controller/assets/default_yolo_class_list.json"), "r") as f:
             self.default_classes = json.load(f)
-        self.reload_model()
 
     def reload_model(self):
-        if self.standard_model is not None:
-            release_model(self.standard_model)
-        if self.custom_model is not None:
-            release_model(self.custom_model)
-        self.standard_model = load_model()
-        self.active_model = self.standard_model
-        self.custom_model = load_model(world=True)
-        self.custom_model.set_classes(self.default_classes)
+        if self.model is not None:
+            release_model(self.model)
+        self.model = load_model(self.custom_target)
 
     @staticmethod
     def bytes_to_image(image_bytes):
@@ -95,11 +89,11 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
             formatted_result.append(result)
         return formatted_result
     
-    def process_image(self, image, id=None, conf=0.4):
+    def process_image(self, image, id=None, conf=0.3):
         if self.stream_mode:
-            result = self.active_model.track(image, verbose=False, persist=True, conf=conf, tracker="bytetrack.yaml")[0]
+            result = self.model.track(image, verbose=False, persist=True, conf=conf, tracker="bytetrack.yaml")[0]
         else:
-            result = self.active_model(image, verbose=False, conf=conf)[0]
+            result = self.model(image, verbose=False, conf=conf)[0]
         result = {
             "image_id": id,
             "result": YoloService.format_result(result)
@@ -126,11 +120,15 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
     
     def SetClasses(self, request, context):
         print(f"Received SetClasses request from {context.peer()} on port {self.port}")
-        if len(request.class_names) == 0:
-            self.active_model = self.standard_model
-        else:
-            self.custom_model.set_classes(self.default_classes + list(request.class_names))
-            self.active_model = self.custom_model
+        if len(request.class_names) == 1 and request.class_names[0] == "default" and self.custom_target:
+            self.custom_target = False
+            self.model = load_model()
+        elif not self.custom_target:
+            self.custom_target = True
+            self.model = load_model(world=True)
+        
+        if self.custom_target and len(request.class_names) > 0:
+            self.model.set_classes(self.default_classes + list(request.class_names))
         return hyrch_serving_pb2.SetClassResponse(result="Success")
 
 def serve(port):

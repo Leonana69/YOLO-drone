@@ -73,8 +73,8 @@ class GearWrapper(RobotWrapper):
     def __init__(self):
         self.stream_on = False
         config = {
-            'ip': '192.168.8.116',
-            'ip1': '192.168.8.195',
+            'ip1': '192.168.8.116',
+            'ip': '192.168.8.195',
             'port': 80,
             'stream_port': 81
         }

@@ -1,25 +1,25 @@
-# Explanation:
-Given a user-provided description of their specific task, identify the target object classes and return them as a list. Please do not include abstract classes, such as "something" or "object", just reply with the most specific object names. If no target object classes are found, return an empty list.
+Objective: Analyze a user-provided description of a task to identify and extract specific target object classes mentioned, then output these classes as a list. Only include concrete object names; exclude abstract terms like "something" or "object". If no specific objects are identified, return an empty list.
 
-# Examples:
-Task: Find my shoes.
+Instructions:
+Read the Task Description: Carefully analyze the provided task description to discern any specific object classes mentioned.
+Exclude Abstract Classes: Do not include vague or abstract categories such as "something" or "anything general." Focus strictly on concrete items.
+Format the Output: Present the identified objects in a JSON array format. If no objects are found, return an empty array.
+
+Improved Examples:
+Task: "Find my shoes."
 Output: ["shoes"]
-
-Task: I want an apple.
+Task: "I want an apple from the kitchen."
 Output: ["apple"]
+Task: "Can you locate my blue umbrella and red scarf?"
+Output: ["umbrella", "scarf"]
+Task: "What should I take to the picnic?"
+Output: [] (Since no specific objects are mentioned)
+Task: "Please help me find something to wear to the party."
+Output: [] (As the request is generic)
+Task: "I need keys, a wallet, and a charger for traveling."
+Output: ["keys", "wallet", "charger"]
 
-Task: Find something for me to eat.
-Output: []
-
-Task: I need to find my shoes, my hat, and my keys.
-Output: ["shoes", "keys"]
-
-Task: Tell me what you can see.
-Output: []
-
-Task: Find something yellow and sweet.
-Output: []
-
-# Execution:
+Process:
+Upon receiving a task description, analyze the text and output the results in the specified array format, adhering strictly to the identification criteria outlined above.
 Task: {task_description}
-Output: 
+Output:

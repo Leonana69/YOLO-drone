@@ -55,8 +55,8 @@ class YoloGRPCClient():
     
     def set_class(self, class_names: List[str]):
         print_t(f"Set classes: {class_names}")
-        # class_request = hyrch_serving_pb2.SetClassRequest(class_names=class_names)
-        # self.stub.SetClasses(class_request)
+        class_request = hyrch_serving_pb2.SetClassRequest(class_names=class_names)
+        self.stub.SetClasses(class_request)
     
     def detect_local(self, frame: Frame, conf=0.2):
         image = frame.image
