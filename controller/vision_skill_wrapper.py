@@ -1,6 +1,7 @@
 from typing import Union, Tuple, Optional
 import numpy as np
 import time
+import cv2
 from filterpy.kalman import KalmanFilter
 from .shared_frame import SharedFrame
 
@@ -54,6 +55,9 @@ class VisionSkillWrapper():
         self.last_update = 0
         self.object_trackers = {}
         self.object_list = []
+        self.aruco_detector = cv2.aruco.ArucoDetector(
+            cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250),
+            cv2.aruco.DetectorParameters())
     
     def update(self):
         if self.shared_frame.timestamp == self.last_update:
@@ -67,6 +71,18 @@ class VisionSkillWrapper():
             y = (box['y1'] + box['y2']) / 2
             w = box['x2'] - box['x1']
             h = box['y2'] - box['y1']
+            if name not in self.object_trackers:
+                self.object_trackers[name] = ObjectTracker(name, x, y, w, h)
+            else:
+                self.object_trackers[name].update(x, y, w, h)
+
+        locs, ids, _ = self.aruco_detector.detectMarkers(self.shared_frame.frame.image_buffer)
+        for i, loc in enumerate(locs):
+            x = (loc[0][0][0] + loc[0][1][0] + loc[0][2][0] + loc[0][3][0]) / 4 / self.shared_frame.frame.image.width
+            y = (loc[0][0][1] + loc[0][1][1] + loc[0][2][1] + loc[0][3][1]) / 4 / self.shared_frame.frame.image.height + 0.1
+            w = abs(loc[0][1][0] - loc[0][0][0]) / self.shared_frame.frame.image.width
+            h = abs(loc[0][2][1] - loc[0][0][1]) / self.shared_frame.frame.image.height + 0.3
+            name = f'door_{ids[i][0]}'
             if name not in self.object_trackers:
                 self.object_trackers[name] = ObjectTracker(name, x, y, w, h)
             else:
@@ -133,14 +149,10 @@ class VisionSkillWrapper():
         FOV_Y = 0.55
         if mid_point[0] < 0.5 - FOV_X / 2 or mid_point[0] > 0.5 + FOV_X / 2 \
         or mid_point[1] < 0.5 - FOV_Y / 2 or mid_point[1] > 0.5 + FOV_Y / 2:
-            return 'object is not in center', False
+            return 30, False
         depth = self.shared_frame.get_depth().data
         start_x = 0.5 - FOV_X / 2
         start_y = 0.5 - FOV_Y / 2
         index_x = (mid_point[0] - start_x) / FOV_X * (depth.shape[1] - 1)
         index_y = (mid_point[1] - start_y) / FOV_Y * (depth.shape[0] - 1)
         return int(depth[int(index_y), int(index_x)] / 10), False
-
-
-
-

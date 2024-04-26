@@ -30,7 +30,7 @@ class TypeFly:
         with self.ui:
             gr.HTML(open(os.path.join(CURRENT_DIR, 'header.html'), 'r').read())
             gr.HTML(open(os.path.join(CURRENT_DIR, 'drone-pov.html'), 'r').read())
-            gr.ChatInterface(self.process_message, retry_btn=None).queue()
+            gr.ChatInterface(self.process_message, retry_btn=None, fill_height=False).queue()
 
     def process_message(self, message, history):
         print_t(f"[S] Receiving task description: {message}")

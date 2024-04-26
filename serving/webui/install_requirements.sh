@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define a list of required packages
-REQUIRED_PKG=("flask" "gradio" "grpcio-tools" "aiohttp" "djitellopy" "colorthief" "webcolors" "openai")
+REQUIRED_PKG=("flask" "gradio" "grpcio-tools" "aiohttp" "djitellopy" "colorthief" "openai")
 
 # Function to check and install package
 check_and_install() {

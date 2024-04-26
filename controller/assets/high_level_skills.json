@@ -17,7 +17,7 @@
     {
         "skill_name": "approach",
         "skill_description": "Approach object $1 with distance $2",
-        "definition": "10{orienting($1);?od($1)<int($2){->True}mf(10)}->False"
+        "definition": "15{orienting($1);?od($1)<int($2){->True}mf(5)}->False"
     },
     {
         "skill_name": "goto",

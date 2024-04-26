@@ -6,8 +6,16 @@ import threading
 import time
 
 class Frame():
-    def __init__(self, image: Image.Image, depth: Optional[NDArray[np.int16]]=None):
-        self._image = image
+    def __init__(self, image: Image.Image | NDArray[np.uint8]=None, depth: Optional[NDArray[np.int16]]=None):
+        if image is None:
+            self._image_buffer = np.zeros((352, 640, 3), dtype=np.uint8)
+            self._image = Image.fromarray(self._image_buffer)
+        if isinstance(image, np.ndarray):
+            self._image_buffer = image
+            self._image = Image.fromarray(image)
+        elif isinstance(image, Image.Image):
+            self._image = image
+            self._image_buffer = np.array(image)
         self._depth = depth
     
     @property
@@ -21,15 +29,25 @@ class Frame():
     @image.setter
     def image(self, image: Image.Image):
         self._image = image
+        self._image_buffer = np.array(image)
 
     @depth.setter
     def depth(self, depth: Optional[NDArray[np.int16]]):
         self._depth = depth
 
+    @property
+    def image_buffer(self) -> NDArray[np.uint8]:
+        return self._image_buffer
+    
+    @image_buffer.setter
+    def image_buffer(self, image_buffer: NDArray[np.uint8]):
+        self._image_buffer = image_buffer
+        self._image = Image.fromarray(image_buffer)
+
 class SharedFrame():
     def __init__(self):
         self.timestamp = 0
-        self.frame = Frame(None)
+        self.frame = Frame()
         self.yolo_result = {}
         self.lock = threading.Lock()
 

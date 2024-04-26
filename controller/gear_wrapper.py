@@ -4,8 +4,9 @@ from .abs.robot_wrapper import RobotWrapper
 from podtp import Podtp
 
 DEFAULT_NO_VALID_READING = 100
-SAFE_DISTANCE_THRESHOLD = 200
-SIDE_DISTANCE_THRESHOLD = 70
+SAFE_DISTANCE_THRESHOLD = 250
+SIDE_DISTANCE_THRESHOLD = 65
+JUMP_DISTANCE_THRESHOLD = 60
 
 def clean_sensor_data(raw_data):
     cleaned_data = raw_data[:]  # Create a copy of the raw data for cleaning
@@ -52,7 +53,7 @@ def significant_jump_detected(distances):
     # Detect significant jumps and evaluate sections
     jumps = []
     for i in range(1, len(distances)):
-        if abs(distances[i] - distances[i - 1]) > 80 \
+        if abs(distances[i] - distances[i - 1]) >= JUMP_DISTANCE_THRESHOLD \
             and (distances[i] < SAFE_DISTANCE_THRESHOLD or distances[i - 1] < SAFE_DISTANCE_THRESHOLD):  # threshold for significant jump
             jumps.append(i)
 
@@ -111,8 +112,8 @@ class GearWrapper(RobotWrapper):
     def __init__(self):
         self.stream_on = False
         config = {
-            'ip': '192.168.8.169',
-            'ip2': '192.168.8.195',
+            'ip2': '192.168.8.169',
+            'ip': '192.168.8.195',
             'port': 80,
             'stream_port': 81
         }
@@ -120,9 +121,13 @@ class GearWrapper(RobotWrapper):
         self.move_speed_x = 2.5
         self.move_speed_y = 2.8
         self.rotate_speed = 15
+        self.unlock_count = 0
 
     def keep_active(self):
-        pass
+        self.unlock_count += 1
+        if self.unlock_count > 100:
+            self.robot.send_ctrl_lock(False)
+            self.unlock_count = 0
 
     def connect(self):
         if not self.robot.connect():
@@ -152,10 +157,10 @@ class GearWrapper(RobotWrapper):
     def front_blocked(self) -> int:
         front_dis = self.robot.sensor_data.depth.data[3,:]
         front_dis = clean_sensor_data(front_dis)
-        # print(f"Front distance: {front_dis}")
+        print(f"Front distance: {front_dis}")
         if min(front_dis) > SAFE_DISTANCE_THRESHOLD:
             return -1
-        if all_values_similar(front_dis) and max(front_dis) < 150:
+        if all_values_similar(front_dis) and min(front_dis) < 140:
             return -2
         else:
             segments = evaluate_segments(front_dis, significant_jump_detected(front_dis), True)
@@ -173,48 +178,57 @@ class GearWrapper(RobotWrapper):
         index = 0 if left else 7
         left_dis = self.robot.sensor_data.depth.data[index,:]
         left_dis = clean_sensor_data(left_dis)
-        segments = evaluate_segments(left_dis, significant_jump_detected(left_dis))
-        min_dis = 99999
-        for seg in segments:
-            if seg['average_distance'] < min_dis:
-                min_dis = seg['average_distance']
-        return min_dis
-
+        # segments = evaluate_segments(left_dis, significant_jump_detected(left_dis))
+        # min_dist = 99999
+        # for seg in segments:
+        #     if seg['average_distance'] < min_dist:
+        #         min_dist = seg['average_distance']
+        min_dist = min(left_dis)
+        print(f"{left} distance: {min_dist}")
+        return min_dist
+    
     def move_forward(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving forward {distance} cm")
         self.robot.send_command_hover(0, 0, 0, 0)
+        small_move = distance <= 15
         while distance > 0:
-            vy = 0
-            index = self.front_blocked()
-            left_margin = self.side_distance(True)
-            right_margin = self.side_distance(False)
-            
-            if left_margin > SIDE_DISTANCE_THRESHOLD and right_margin > SIDE_DISTANCE_THRESHOLD:
-                vy = 0
-            elif left_margin > SIDE_DISTANCE_THRESHOLD:
-                vy = -self.move_speed_y
-            elif right_margin > SIDE_DISTANCE_THRESHOLD:
-                vy = self.move_speed_y
+            if small_move:
+                self.robot.send_command_hover(0, self.move_speed_x, 0, 0)
             else:
-                if abs(left_margin - right_margin) > 50:
-                    if left_margin < right_margin:
-                        vy = self.move_speed_y
-                    else:
-                        vy = -self.move_speed_y
-
-            if index == -2:
-                if min(self.robot.sensor_data.depth.data[0,:]) > SAFE_DISTANCE_THRESHOLD:
-                    self.turn_ccw(90)
-                elif min(self.robot.sensor_data.depth.data[7,:]) > SAFE_DISTANCE_THRESHOLD:
-                    self.turn_cw(90)
+                dir = self.front_blocked()
+                while dir != -1:
+                    if dir == -2:
+                        print("Front blocked by an object")
+                        self.robot.send_command_hover(0, 0, 0, 0)
+                        if max(self.robot.sensor_data.depth.data[0,:]) > SAFE_DISTANCE_THRESHOLD:
+                            self.turn_ccw(45)
+                        elif max(self.robot.sensor_data.depth.data[7,:]) > SAFE_DISTANCE_THRESHOLD:
+                            self.turn_cw(45)
+                        else:
+                            self.turn_ccw(180)
+                    if dir != -1:
+                        if dir == 0:
+                            self.turn_cw(30)
+                        elif dir == 1:
+                            self.turn_ccw(30)
+                    dir = self.front_blocked()
+                vy = 0
+                left_margin = self.side_distance(True)
+                right_margin = self.side_distance(False)
+                if left_margin > SIDE_DISTANCE_THRESHOLD and right_margin > SIDE_DISTANCE_THRESHOLD:
+                    vy = 0
+                elif left_margin > SIDE_DISTANCE_THRESHOLD:
+                    vy = -1.5
+                elif right_margin > SIDE_DISTANCE_THRESHOLD:
+                    vy = 1.5
                 else:
-                    self.turn_ccw(180)
-            if index != -1:
-                if index == 0:
-                    self.turn_cw(30)
-                elif index == 1:
-                    self.turn_ccw(30)
-            self.robot.send_command_hover(0, self.move_speed_x, vy, 0)
+                    if abs(left_margin - right_margin) > 80:
+                        if left_margin < right_margin:
+                            vy = 1.5
+                        else:
+                            vy = -1.5
+                print(vy)
+                self.robot.send_command_hover(0, self.move_speed_x, vy, 0)
             time.sleep(0.1)
             distance -= 2
         self.robot.send_command_hover(0, 0, 0, 0)
@@ -262,7 +276,7 @@ class GearWrapper(RobotWrapper):
         print(f"-> Turning CCW {degree} degrees")
         self.robot.send_command_hover(0, 0, 0, 0)
         self.robot.send_command_position(0, 0, 0, degree)
-        time.sleep(0.5 + degree / 70.0)
+        time.sleep(1 + degree / 70.0)
         self.robot.send_command_hover(0, 0, 0, 0)
         # if degree >= 90:
         #     print("-> Turning CCW over 90 degrees")
@@ -273,7 +287,7 @@ class GearWrapper(RobotWrapper):
         print(f"-> Turning CW {degree} degrees")
         self.robot.send_command_hover(0, 0, 0, 0)
         self.robot.send_command_position(0, 0, 0, -degree)
-        time.sleep(0.5 + degree / 70.0)
+        time.sleep(1 + degree / 70.0)
         self.robot.send_command_hover(0, 0, 0, 0)
         # if degree >= 90:
         #     print("-> Turning CW over 90 degrees")

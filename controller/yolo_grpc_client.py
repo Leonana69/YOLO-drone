@@ -25,14 +25,21 @@ Access the YOLO service through gRPC.
 class YoloGRPCClient():
     def __init__(self, shared_frame: SharedFrame=None):
         channel = grpc.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
-        channel_async = grpc.aio.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
         self.stub = hyrch_serving_pb2_grpc.YoloServiceStub(channel)
-        self.stub_async = hyrch_serving_pb2_grpc.YoloServiceStub(channel_async)
+
+        # channel_async = grpc.aio.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
+        # self.stub_async = hyrch_serving_pb2_grpc.YoloServiceStub(channel_async)
+        self.is_async_inited = False
         self.image_size = (640, 352)
         self.frame_queue = queue.Queue()
         self.shared_frame = shared_frame
         self.frame_id_lock = asyncio.Lock()
         self.frame_id = 0
+
+    def init_async_channel(self):
+        channel_async = grpc.aio.insecure_channel(f'{VISION_SERVICE_IP}:{YOLO_SERVICE_PORT}')
+        self.stub_async = hyrch_serving_pb2_grpc.YoloServiceStub(channel_async)
+        self.is_async_inited = True
 
     def is_local_service(self):
         return VISION_SERVICE_IP == 'localhost'
@@ -48,8 +55,8 @@ class YoloGRPCClient():
     
     def set_class(self, class_names: List[str]):
         print_t(f"Set classes: {class_names}")
-        class_request = hyrch_serving_pb2.SetClassRequest(class_names=class_names)
-        self.stub.SetClasses(class_request)
+        # class_request = hyrch_serving_pb2.SetClassRequest(class_names=class_names)
+        # self.stub.SetClasses(class_request)
     
     def detect_local(self, frame: Frame, conf=0.2):
         image = frame.image
@@ -63,7 +70,10 @@ class YoloGRPCClient():
         if self.shared_frame is not None:
             self.shared_frame.set(self.frame_queue.get(), json_results)
 
-    async def detect(self, frame: Frame, conf=0.05):
+    async def detect(self, frame: Frame, conf=0.1):
+        if not self.is_async_inited:
+            self.init_async_channel()
+
         if self.is_local_service():
             self.detect_local(frame, conf)
             return

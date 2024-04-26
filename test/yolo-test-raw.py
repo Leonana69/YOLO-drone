@@ -2,6 +2,7 @@ from ultralytics import YOLOWorld
 import cv2
 
 model = YOLOWorld('yolov8s-worldv2.pt')
+model.set_class(['suitcase', 'person'])
 
 def format_result(yolo_result):
     if yolo_result.probs is not None:
