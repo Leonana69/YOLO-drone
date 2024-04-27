@@ -13,9 +13,9 @@ Output: ["apple"]
 Task: "Can you locate my blue umbrella and red scarf?"
 Output: ["umbrella", "scarf"]
 Task: "What should I take to the picnic?"
-Output: [] (Since no specific objects are mentioned)
+Output: []
 Task: "Please help me find something to wear to the party."
-Output: [] (As the request is generic)
+Output: []
 Task: "I need keys, a wallet, and a charger for traveling."
 Output: ["keys", "wallet", "charger"]
 

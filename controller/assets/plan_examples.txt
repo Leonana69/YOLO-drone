@@ -47,13 +47,13 @@ Response: l('Please give me more information.')
 Reason: The task is too vague, so we use log to output the advice
 
 Example 9:
-Scene: [chair_1 x:0.58 y:0.5 width:0.43 height:0.7 color:gray, apple_1 x:0.6 y:0.3 width:0.08 height:0.09 color:red]
+Scene: [chair_1 x:0.58 y:0.5 width:0.43 height:0.7, apple_1 x:0.6 y:0.3 width:0.08 height:0.09]
 Task: [A] Turn around and go to the apple
 Response: mu(40);g('apple',10)
 Reason: after turning around, we will do replan. We found that the chair is blocking the apple, so we use moving_up to get over the chair and then go to the apple
 
 Example 10:
-Scene: [apple_1 x:0.34 y:0.3 width:0.09 height:0.1 color:red, apple_2 x:0.3 y:0.5 width:0.15 height:0.12 color:red]
+Scene: [apple_1 x:0.34 y:0.3 width:0.09 height:0.1, apple_2 x:0.3 y:0.5 width:0.15 height:0.12]
 Task: [A] Go to biggest apple
 Response: g('apple_2',10)
 Reason: from the scene, we tell directly that apple_2 is the biggest apple

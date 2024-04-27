@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Define a list of required packages
-REQUIRED_PKG=("flask" "gradio" "grpcio-tools" "aiohttp" "djitellopy" "colorthief" "openai")
+REQUIRED_PKG=("flask" "gradio" "grpcio-tools" "aiohttp" "djitellopy" "openai" "opencv-python" "numpy" "pillow" "filterpy" "matplotlib" "torch")
 
 # Function to check and install package
 check_and_install() {
     package=$1
-    if ! pip list | grep -F $package > /dev/null; then
+    if ! pip3 list | grep -F $package > /dev/null; then
         echo "Package $package is not installed. Installing..."
-        pip install $package
+        pip3 install $package
     else
         echo "Package $package is already installed."
     fi

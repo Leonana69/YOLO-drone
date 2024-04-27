@@ -129,6 +129,9 @@ class GearWrapper(RobotWrapper):
                 left_distance = clean_sensor_data(array[0, :])
                 front_distance = clean_sensor_data(array[2, :])
                 right_distance = clean_sensor_data(array[7, :])
+                if max(front_distance) < 50:
+                    self.move_backward(10)
+
                 x = np.concatenate((left_distance, front_distance, right_distance))
                 x = torch.tensor(x, dtype=torch.float32)
                 x = (x - self.model.mean) / self.model.std
