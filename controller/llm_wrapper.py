@@ -1,10 +1,11 @@
-import os, json
+import os
 import openai
 
-openai.organization = "org-sAnQwPNnbSrHg1XyR4QYALf7"
-openai.api_key = os.environ.get('OPENAI_API_KEY')
+USE_LOCAL_MODEL = False
+
 GPT3 = "gpt-3.5-turbo-16k"
 GPT4 = "gpt-4"
+LLAMA3 = "meta-llama/Meta-Llama-3-8B-Instruct"
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 chat_log_path = os.path.join(CURRENT_DIR, "assets/chat_log.txt")
@@ -14,9 +15,18 @@ class LLMWrapper:
         self.temperature = temperature
         # clean chat_log
         open(chat_log_path, "w").close()
+        if USE_LOCAL_MODEL:
+            self.client = openai.OpenAI(
+                base_url="http://10.66.41.78/v1",
+                api_key="token-abc123",
+            )
+        else:
+            self.client = openai.OpenAI(
+                api_key=os.environ.get("OPENAI_API_KEY"),
+            )
 
     def request(self, prompt, model_name=GPT4):
-        response = openai.chat.completions.create(
+        response = self.client.chat.completions.create(
             model=model_name,
             messages=[{"role": "user", "content": prompt}],
             temperature=self.temperature,

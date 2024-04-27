@@ -63,7 +63,7 @@ class VisionSkillWrapper():
         if self.shared_frame.timestamp == self.last_update:
             return
         self.last_update = self.shared_frame.timestamp
-        objs = self.shared_frame.get_yolo_result()['result']
+        objs = self.shared_frame.get_yolo_result()['result'] + self.shared_frame.get_yolo_result()['result_custom']
         for obj in objs:
             name = obj['name']
             box = obj['box']

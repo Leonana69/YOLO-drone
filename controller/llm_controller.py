@@ -189,7 +189,7 @@ class LLMController():
             else:
                 # asynchronously send image to yolo server
                 asyncio_loop.call_soon_threadsafe(asyncio.create_task, self.yolo_client.detect(frame))
-            time.sleep(0.050)
+            time.sleep(0.080)
         # Cancel all running tasks (if any)
         for task in asyncio.all_tasks(asyncio_loop):
             task.cancel()
