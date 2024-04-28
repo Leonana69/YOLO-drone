@@ -1,8 +1,6 @@
 import os
 import openai
 
-USE_LOCAL_MODEL = False
-
 GPT3 = "gpt-3.5-turbo-16k"
 GPT4 = "gpt-4"
 LLAMA3 = "meta-llama/Meta-Llama-3-8B-Instruct"
@@ -15,18 +13,21 @@ class LLMWrapper:
         self.temperature = temperature
         # clean chat_log
         open(chat_log_path, "w").close()
-        if USE_LOCAL_MODEL:
-            self.client = openai.OpenAI(
-                base_url="http://10.66.41.78/v1",
-                api_key="token-abc123",
-            )
-        else:
-            self.client = openai.OpenAI(
-                api_key=os.environ.get("OPENAI_API_KEY"),
-            )
+        self.llama_client = openai.OpenAI(
+            base_url="http://10.66.41.78:8000/v1",
+            api_key="token-abc123",
+        )
+        self.gpt_client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"),
+        )
 
     def request(self, prompt, model_name=GPT4):
-        response = self.client.chat.completions.create(
+        if model_name == LLAMA3:
+            client = self.llama_client
+        else:
+            client = self.gpt_client
+        
+        response = client.chat.completions.create(
             model=model_name,
             messages=[{"role": "user", "content": prompt}],
             temperature=self.temperature,

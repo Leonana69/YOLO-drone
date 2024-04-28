@@ -12,6 +12,7 @@ PARENT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__f
 sys.path.append(PARENT_DIR)
 from controller.llm_controller import LLMController
 from controller.utils import print_t
+from controller.llm_wrapper import GPT4, LLAMA3
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -27,10 +28,21 @@ class TypeFly:
         self.system_stop = False
         self.ui = gr.Blocks(title="TypeFly")
         self.asyncio_loop = asyncio.get_event_loop()
+        self.use_llama3 = False
         with self.ui:
             gr.HTML(open(os.path.join(CURRENT_DIR, 'header.html'), 'r').read())
             gr.HTML(open(os.path.join(CURRENT_DIR, 'drone-pov.html'), 'r').read())
             gr.ChatInterface(self.process_message, retry_btn=None, fill_height=False).queue()
+            gr.Checkbox(label='Use llama3', value=False).select(self.checkbox_llama3)
+
+    def checkbox_llama3(self):
+        self.use_llama3 = not self.use_llama3
+        if self.use_llama3:
+            print_t(f"Switch to llama3")
+            self.llm_controller.planner.set_model(LLAMA3)
+        else:
+            print_t(f"Switch to gpt4")
+            self.llm_controller.planner.set_model(GPT4)
 
     def process_message(self, message, history):
         print_t(f"[S] Receiving task description: {message}")

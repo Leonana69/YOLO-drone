@@ -50,8 +50,6 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
         self.standard_model = load_model()
         self.custom_model = load_model(world=True)
         self.port = port
-        with open(os.path.join(ROOT_PATH, "controller/assets/default_yolo_class_list.json"), "r") as f:
-            self.default_classes = json.load(f)
 
     def reload_model(self):
         if self.custom_model is not None:
@@ -97,7 +95,7 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
         if self.stream_mode:
             result = self.standard_model.track(image, verbose=False, persist=True, conf=conf, tracker="bytetrack.yaml")[0]
             if self.custom_target:
-                result_custom = self.custom_model.track(image, verbose=False, conf=0.01, tracker="bytetrack.yaml")[0]
+                result_custom = self.custom_model.track(image, verbose=False, conf=0.05, tracker="bytetrack.yaml")[0]
         else:
             result = self.standard_model(image, verbose=False, conf=conf)[0]
             if self.custom_target:
