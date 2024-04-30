@@ -66,7 +66,10 @@ class SkillItem(ABC):
                 parsed_args.append(arg)
                 continue
             try:
-                parsed_args.append(self.args[i].arg_type(arg.strip()))
+                if self.args[i].arg_type == bool:
+                    parsed_args.append(arg.strip().lower() == 'true')
+                else:
+                    parsed_args.append(self.args[i].arg_type(arg.strip()))
             except ValueError as e:
                 raise ValueError(f"Error parsing argument {i + 1}. Expected type {self.args[i].arg_type.__name__}, but got value '{arg.strip()}'. Original error: {e}")
         return parsed_args

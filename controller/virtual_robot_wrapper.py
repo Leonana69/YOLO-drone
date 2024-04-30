@@ -84,3 +84,6 @@ class VirtualRobotWrapper(RobotWrapper):
             print("-> Turning CW over 90 degrees")
             return True, True
         return True, False
+    
+    def move_in_circle(self, cw) -> Tuple[bool, bool]:
+        pass

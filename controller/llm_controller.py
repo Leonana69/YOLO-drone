@@ -62,6 +62,7 @@ class LLMController():
         self.low_level_skillset.add_skill(LowLevelSkillItem("move_down", self.drone.move_down, "Move down by a distance", args=[SkillArg("distance", int)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("turn_cw", self.drone.turn_cw, "Rotate clockwise/right by certain degrees", args=[SkillArg("degrees", int)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("turn_ccw", self.drone.turn_ccw, "Rotate counterclockwise/left by certain degrees", args=[SkillArg("degrees", int)]))
+        self.low_level_skillset.add_skill(LowLevelSkillItem("move_in_circle", self.drone.move_in_circle, "Move in circle in cw/ccw", args=[SkillArg("cw", bool)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("delay", self.skill_delay, "Wait for specified microseconds", args=[SkillArg("milliseconds", int)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("is_visible", self.vision.is_visible, "Check the visibility of target object", args=[SkillArg("object_name", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("object_x", self.vision.object_x, "Get object's X-coordinate in (0,1)", args=[SkillArg("object_name", str)]))

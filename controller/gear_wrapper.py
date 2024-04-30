@@ -74,7 +74,7 @@ class GearWrapper(RobotWrapper):
         self.stream_on = False
         config = {
             'ip': '192.168.8.116',
-            'ip2': '192.168.8.195',
+            'ip1': '192.168.8.195',
             'port': 80,
             'stream_port': 81
         }
@@ -222,4 +222,17 @@ class GearWrapper(RobotWrapper):
         # if degree >= 90:
         #     print("-> Turning CW over 90 degrees")
         #     return True, True
+        return True, False
+    
+    def move_in_circle(self, cw) -> Tuple[bool, bool]:
+        if cw:
+            vy = -8
+            vr = -12
+        else:
+            vy = 8
+            vr = 12
+        for i in range(50):
+            self.robot.send_command_hover(0, 0, vy, vr)
+            time.sleep(0.1)
+        self.robot.send_command_hover(0, 0, 0, 0)
         return True, False

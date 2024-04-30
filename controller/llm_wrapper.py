@@ -14,7 +14,8 @@ class LLMWrapper:
         # clean chat_log
         open(chat_log_path, "w").close()
         self.llama_client = openai.OpenAI(
-            base_url="http://10.66.41.78:8000/v1",
+            # base_url="http://10.66.41.78:8000/v1",
+            base_url="http://localhost:8000/v1",
             api_key="token-abc123",
         )
         self.gpt_client = openai.OpenAI(
