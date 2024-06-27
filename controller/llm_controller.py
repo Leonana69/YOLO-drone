@@ -157,7 +157,8 @@ class LLMController():
                 continue
             else:
                 break
-        self.append_message(f'Task complete with {ret_val.value if ret_val else None}')
+        self.append_message(f'Task ended')
+        # self.append_message(f'Task complete with {ret_val.value if ret_val else None}')
         self.append_message('end')
         self.current_plan = None
         self.execution_status = None

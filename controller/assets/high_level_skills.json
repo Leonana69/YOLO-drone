@@ -27,6 +27,6 @@
     {
         "skill_name": "follow",
         "skill_description": "Follow $1 object",
-        "definition": "20{goto($1,20);delay(500)}"
+        "definition": "16{goto($1,20);delay(500)}"
     }
 ]

@@ -206,7 +206,7 @@ class GearWrapper(RobotWrapper):
         print(f"-> Turning CCW {degree} degrees")
         self.robot.send_command_hover(0, 0, 0, 0)
         self.robot.send_command_position(0, 0, 0, degree)
-        time.sleep(1 + degree / 70.0)
+        time.sleep(1 + degree / 50.0)
         self.robot.send_command_hover(0, 0, 0, 0)
         # if degree >= 90:
         #     print("-> Turning CCW over 90 degrees")
@@ -217,7 +217,7 @@ class GearWrapper(RobotWrapper):
         print(f"-> Turning CW {degree} degrees")
         self.robot.send_command_hover(0, 0, 0, 0)
         self.robot.send_command_position(0, 0, 0, -degree)
-        time.sleep(1 + degree / 70.0)
+        time.sleep(1 + degree / 50.0)
         self.robot.send_command_hover(0, 0, 0, 0)
         # if degree >= 90:
         #     print("-> Turning CW over 90 degrees")

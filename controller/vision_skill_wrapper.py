@@ -31,7 +31,7 @@ class ObjectTracker:
 
     def predict(self) -> Optional[ObjectInfo]:
         # if no update in 2 seconds, return None
-        if time.time() - self.timestamp > 0.3:
+        if time.time() - self.timestamp > 0.8:
             return None
         self.kf.predict()
         return ObjectInfo(self.name, self.kf.x[0][0], self.kf.x[1][0], self.size[0], self.size[1])
