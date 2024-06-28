@@ -17,16 +17,11 @@
     {
         "skill_name": "approach",
         "skill_description": "Approach object $1 with distance $2",
-        "definition": "15{orienting($1);?od($1)<int($2){->True}mf(5)}->False"
+        "definition": "mf(100)"
     },
     {
         "skill_name": "goto",
         "skill_description": "Go to object $1 with distance $2",
-        "definition": "orienting($1);approach($1,$2)"
-    },
-    {
-        "skill_name": "follow",
-        "skill_description": "Follow $1 object",
-        "definition": "16{goto($1,20);delay(500)}"
+        "definition": "orienting($1);approach($1)"
     }
 ]

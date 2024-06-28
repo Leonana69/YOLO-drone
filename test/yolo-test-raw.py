@@ -69,7 +69,7 @@ while True:
     if not ret:
         break
     # detect
-    inference = model(frame, conf=0.1)
+    inference = model.track(frame, conf=0.1)
     print(inference)
     result = format_result(inference[0])
     # result = format_result(model.track(frame, conf=0.1, persist=True, tracker="bytetrack.yaml")[0])

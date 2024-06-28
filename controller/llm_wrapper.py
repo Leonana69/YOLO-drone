@@ -1,5 +1,6 @@
 import os
 import openai
+from openai import Stream, ChatCompletion
 
 GPT3 = "gpt-3.5-turbo-16k"
 GPT4 = "gpt-4"
@@ -11,8 +12,6 @@ chat_log_path = os.path.join(CURRENT_DIR, "assets/chat_log.txt")
 class LLMWrapper:
     def __init__(self, temperature=0.0):
         self.temperature = temperature
-        # clean chat_log
-        open(chat_log_path, "w").close()
         self.llama_client = openai.OpenAI(
             # base_url="http://10.66.41.78:8000/v1",
             base_url="http://localhost:8000/v1",
@@ -22,7 +21,7 @@ class LLMWrapper:
             api_key=os.environ.get("OPENAI_API_KEY"),
         )
 
-    def request(self, prompt, model_name=GPT4):
+    def request(self, prompt, model_name=GPT4, stream=False) -> str | Stream[ChatCompletion.ChatCompletionChunk]:
         if model_name == LLAMA3:
             client = self.llama_client
         else:
@@ -32,12 +31,16 @@ class LLMWrapper:
             model=model_name,
             messages=[{"role": "user", "content": prompt}],
             temperature=self.temperature,
+            stream=stream,
         )
 
         # save the message in a txt
         with open(chat_log_path, "a") as f:
             f.write(prompt + "\n---\n")
-            f.write(response.model_dump_json(indent=2) + "\n---\n")
+            if not stream:
+                f.write(response.model_dump_json(indent=2) + "\n---\n")
 
-        # print(f"LLM response: {response}")
+        if stream:
+            return response
+
         return response.choices[0].message.content

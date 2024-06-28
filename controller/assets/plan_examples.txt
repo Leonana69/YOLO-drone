@@ -2,13 +2,13 @@ Example 1:
 Scene: []
 Task: [A] Find a bottle, tell me it's height and take a picture of it.
 Reason: no bottle instance in the scene, so we use scan to find bottle, then go and use object_height to get the height and log to output the height, finally use picture to take a picture of the bottle
-Response: ?s('bottle')==True{g('bottle',10);_2=oh('bottle');l(_2);tp}
+Response: ?s('bottle')==True{g('bottle');_2=oh('bottle');l(_2);tp}
 
 Example 2:
 Scene: [apple_5]
 Task: [A] Find an apple.
 Reason: there is an apple instance in the scene, we just go to the apple_5
-Response: g('apple',10)
+Response: g('apple')
 
 Example 3:
 Scene: [apple_3]
@@ -20,7 +20,7 @@ Example 4:
 Scene: [chair_13,laptop_2]
 Task: [A] Go to the chair behind you.
 Reason: the chair_13 is not the target because we want the one behind you. So we turn 180 degrees then go to the general object chair, since chair is a large object, we use 80cm as the distance.
-Response: tc(180);g('chair',80)
+Response: tc(180);g('chair')
 
 Example 5:
 Scene: [chair_3,laptop_1,bottle_5]
@@ -38,7 +38,7 @@ Example 7:
 Scene: [chair_3,laptop_9]
 Task: [A] If you can see a chair, go find a person, else go find an orange.
 Reason: From the scene, we can see a chair, so we use scan to find a person. Since person is a large object, we use 60cm as the distance
-Response: _1=s('person');?_1==True{g('person',60);->True}->False
+Response: _1=s('person');?_1==True{g('person');->True}->False
 
 Example 8:
 Scene: [chair_3,laptop_9]
@@ -50,22 +50,10 @@ Example 9:
 Scene: [chair_1 x:0.58 y:0.5 width:0.43 height:0.7, apple_1 x:0.6 y:0.3 width:0.08 height:0.09]
 Task: [A] Turn around and go to the apple
 Reason: after turning around, we will do replan. We found that the chair is blocking the apple, so we use moving_up to get over the chair and then go to the apple
-Response: mu(40);g('apple',10)
+Response: mu(40);g('apple')
 
 Example 10:
 Scene: [apple_1 x:0.34 y:0.3 width:0.09 height:0.1, apple_2 x:0.3 y:0.5 width:0.15 height:0.12]
 Task: [A] Go to biggest apple
 Reason: from the scene, we tell directly that apple_2 is the biggest apple
-Response: g('apple_2',10)
-
-Example 11:
-Scene: [door_1 x:0.2 y:0.4 width:0.2 height: 0.2]
-Task: [A] Go through the door
-Reason: Approach the door_1, then move forward to go through the door
-Response: g('door_1',40);mf(180)
-
-Example 12:
-Scene: []
-Task: [A] Get to the next room
-Reason: Find the door_2, then move forward to go through the door
-Response: s('door');g('door',40);mf(180)
+Response: g('apple_2')

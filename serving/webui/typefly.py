@@ -6,6 +6,9 @@ import gradio as gr
 from flask import Flask, Response
 from threading import Thread
 import argparse
+import logging
+
+logging.basicConfig(level=logging.WARNING)
 
 PARENT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

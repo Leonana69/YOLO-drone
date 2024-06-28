@@ -14,7 +14,7 @@ from .vision_skill_wrapper import VisionSkillWrapper
 from .llm_planner import LLMPlanner
 from .skillset import SkillSet, LowLevelSkillItem, HighLevelSkillItem, SkillArg
 from .utils import print_t, input_t
-from .minispec_interpreter import MiniSpecInterpreter
+from .minispec_interpreter import MiniSpecInterpreter, Statement
 from .gear_wrapper import GearWrapper
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +26,7 @@ class LLMController():
             self.yolo_client = YoloClient(shared_frame=self.shared_frame)
         else:
             self.yolo_client = YoloGRPCClient(shared_frame=self.shared_frame)
-            self.yolo_client.set_class(['shoe'])
+            self.yolo_client.set_class([])
         self.vision = VisionSkillWrapper(self.shared_frame)
         self.latest_frame = None
         self.controller_active = True
@@ -82,8 +82,8 @@ class LLMController():
             for skill in json_data:
                 self.high_level_skillset.add_skill(HighLevelSkillItem.load_from_dict(skill))
 
-        MiniSpecInterpreter.low_level_skillset = self.low_level_skillset
-        MiniSpecInterpreter.high_level_skillset = self.high_level_skillset
+        Statement.low_level_skillset = self.low_level_skillset
+        Statement.high_level_skillset = self.high_level_skillset
         self.planner.init(high_level_skillset=self.high_level_skillset, low_level_skillset=self.low_level_skillset, vision_skill=self.vision)
 
         self.current_plan = None
@@ -135,13 +135,9 @@ class LLMController():
         self.append_message('[TASK]: ' + task_description)
         ret_val = None
         while True:
-            self.yolo_client.set_class(self.planner.get_class(task_description))
-            time.sleep(0.5)
-            t1 = time.time()
+            # set class for yolo
+            # self.yolo_client.set_class(self.planner.get_class(task_description))
             self.current_plan = self.planner.plan(task_description, previous_response=self.current_plan, execution_status=self.execution_status)
-            t2 = time.time()
-            print_t(f"[C] Planning time: {t2 - t1}")
-            self.append_message('[PLAN]: ' + self.current_plan + f', received in ({t2 - t1:.2f}s)')
             # consent = input_t(f"[C] Get plan: {self.current_plan}, executing?")
             # if consent == 'n':
             #     print_t("[C] > Plan rejected <")
@@ -151,6 +147,8 @@ class LLMController():
             except Exception as e:
                 print_t(f"[C] Error: {e}")
             break
+
+            
             # disable replan for now
             if ret_val.replan:
                 print_t(f"[C] > Replanning <: {ret_val.value}")

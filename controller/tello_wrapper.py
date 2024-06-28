@@ -103,3 +103,6 @@ class TelloWrapper(RobotWrapper):
             print('[OK]')
             return True
         return False
+
+    def move_in_circle(self, cw) -> Tuple[bool, bool]:
+        return True, False
