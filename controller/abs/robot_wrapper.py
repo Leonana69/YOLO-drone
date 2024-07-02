@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
 
 class RobotWrapper(ABC):
+    movement_x_accumulator = 0
+    movement_y_accumulator = 0
+    rotation_accumulator = 0
     @abstractmethod
     def connect(self):
         pass

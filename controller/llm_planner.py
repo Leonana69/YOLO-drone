@@ -45,7 +45,7 @@ class LLMPlanner():
         result = self.llm.request(prompt, GPT3)
         return ast.literal_eval(result)
 
-    def plan(self, task_description: str, scene_description: str = None, error_message: str = None, previous_response: str = None, execution_status: str = None):
+    def plan(self, task_description: str, scene_description: str = None, error_message: str = None, execution_history: str = None):
         # by default, the task_description is an action
         if not task_description.startswith("["):
             task_description = "[A] " + task_description
@@ -60,10 +60,9 @@ class LLMPlanner():
                                              error_message=error_message,
                                              scene_description=scene_description,
                                              task_description=task_description,
-                                             previous_response=previous_response,
-                                             execution_status=execution_status)
+                                             execution_history=execution_history)
         print_t(f"[P] Planning request: {task_description}")
-        return self.llm.request(prompt, self.model_name)
+        return self.llm.request(prompt, self.model_name, stream=False)
     
     def probe(self, question: str) -> MiniSpecValueType:
         prompt = self.prompt_probe.format(scene_description=self.vision_skill.get_obj_list(), question=question)

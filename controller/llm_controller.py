@@ -87,11 +87,12 @@ class LLMController():
         self.planner.init(high_level_skillset=self.high_level_skillset, low_level_skillset=self.low_level_skillset, vision_skill=self.vision)
 
         self.current_plan = None
-        self.execution_status = None
+        self.execution_history = None
 
     def skill_take_picture(self) -> Tuple[None, bool]:
         img_path = os.path.join(self.cache_folder, f"{uuid.uuid4()}.jpg")
         Image.fromarray(self.latest_frame).save(img_path)
+        print_t(f"[C] Picture saved to {img_path}")
         self.append_message((img_path,))
         return None, False
 
@@ -100,7 +101,7 @@ class LLMController():
         print_t(f"[LOG] {text}")
         return None, False
     
-    def skill_re_plan(self, value: str) -> Tuple[None, bool]:
+    def skill_re_plan(self) -> Tuple[None, bool]:
         return None, True
 
     def skill_delay(self, ms: int) -> Tuple[None, bool]:
@@ -124,8 +125,9 @@ class LLMController():
     
     def execute_minispec(self, minispec: str):
         interpreter = MiniSpecInterpreter()
-        ret_val = interpreter.execute(minispec)
-        self.execution_status = interpreter.execution_status
+        interpreter.execute(minispec)
+        self.execution_history = interpreter.execution_history
+        ret_val = interpreter.ret_queue.get()
         return ret_val
 
     def execute_task_description(self, task_description: str):
@@ -137,7 +139,7 @@ class LLMController():
         while True:
             # set class for yolo
             # self.yolo_client.set_class(self.planner.get_class(task_description))
-            self.current_plan = self.planner.plan(task_description, previous_response=self.current_plan, execution_status=self.execution_status)
+            self.current_plan = self.planner.plan(task_description, execution_history=self.execution_history)
             # consent = input_t(f"[C] Get plan: {self.current_plan}, executing?")
             # if consent == 'n':
             #     print_t("[C] > Plan rejected <")
@@ -146,8 +148,7 @@ class LLMController():
                 ret_val = self.execute_minispec(self.current_plan)
             except Exception as e:
                 print_t(f"[C] Error: {e}")
-            break
-
+            # break
             
             # disable replan for now
             if ret_val.replan:
@@ -159,7 +160,7 @@ class LLMController():
         # self.append_message(f'Task complete with {ret_val.value if ret_val else None}')
         self.append_message('end')
         self.current_plan = None
-        self.execution_status = None
+        self.execution_history = None
 
     def start_robot(self):
         print_t("[C] Drone is taking off...")
@@ -193,5 +194,7 @@ class LLMController():
         # Cancel all running tasks (if any)
         for task in asyncio.all_tasks(asyncio_loop):
             task.cancel()
+        self.drone.stop_stream()
+        self.drone.land()
         asyncio_loop.stop()
         print_t("[C] Capture loop stopped")

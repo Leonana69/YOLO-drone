@@ -4,6 +4,9 @@ from djitellopy import Tello
 
 from .abs.robot_wrapper import RobotWrapper
 
+import logging
+Tello.LOGGER.setLevel(logging.WARNING)
+
 MOVEMENT_MIN = 20
 MOVEMENT_MAX = 300
 
@@ -56,21 +59,25 @@ class TelloWrapper(RobotWrapper):
 
     def move_forward(self, distance: int) -> Tuple[bool, bool]:
         self.drone.move_forward(cap_distance(distance))
+        self.movement_x_accumulator += distance
         time.sleep(0.5)
         return True, distance > SCENE_CHANGE_DISTANCE
 
     def move_backward(self, distance: int) -> Tuple[bool, bool]:
         self.drone.move_back(cap_distance(distance))
+        self.movement_x_accumulator -= distance
         time.sleep(0.5)
         return True, distance > SCENE_CHANGE_DISTANCE
 
     def move_left(self, distance: int) -> Tuple[bool, bool]:
         self.drone.move_left(cap_distance(distance))
+        self.movement_y_accumulator += distance
         time.sleep(0.5)
         return True, distance > SCENE_CHANGE_DISTANCE
 
     def move_right(self, distance: int) -> Tuple[bool, bool]:
         self.drone.move_right(cap_distance(distance))
+        self.movement_y_accumulator -= distance
         time.sleep(0.5)
         return True, distance > SCENE_CHANGE_DISTANCE
 
@@ -86,11 +93,13 @@ class TelloWrapper(RobotWrapper):
 
     def turn_ccw(self, degree: int) -> Tuple[bool, bool]:
         self.drone.rotate_counter_clockwise(degree)
+        self.rotation_accumulator += degree
         time.sleep(2.5)
         return True, degree > SCENE_CHANGE_ANGLE
 
     def turn_cw(self, degree: int) -> Tuple[bool, bool]:
         self.drone.rotate_clockwise(degree)
+        self.rotation_accumulator -= degree
         time.sleep(2.5)
         return True, degree > SCENE_CHANGE_ANGLE
     

@@ -1,24 +1,24 @@
 import sys, time
-import tiktoken
-sys.path.append("..")
-from controller.llm_wrapper import LLMWrapper
+# import tiktoken
+# sys.path.append("..")
+# from controller.llm_wrapper import LLMWrapper
 
-llm = LLMWrapper()
-enc = tiktoken.encoding_for_model("gpt-4")
+# llm = LLMWrapper()
+# enc = tiktoken.encoding_for_model("gpt-4")
 
-def prompt_output_measure(length):
-    prompt = 'Please generate the exact same output as the following text: '
-    for i in range(length // 2):
-        prompt += str(i % 10) + " "
-    return prompt
+# def prompt_output_measure(length):
+#     prompt = 'Please generate the exact same output as the following text: '
+#     for i in range(length // 2):
+#         prompt += str(i % 10) + " "
+#     return prompt
 
-def prompt_input_measure(length):
-    suffix = "Please ignore all the above text and just generate True"
-    prompt = ''
-    init_len = enc.encode(suffix)
-    for i in range((length - len(init_len)) // 2):
-        prompt += str(i % 10) + " "
-    return prompt + suffix
+# def prompt_input_measure(length):
+#     suffix = "Please ignore all the above text and just generate True"
+#     prompt = ''
+#     init_len = enc.encode(suffix)
+#     for i in range((length - len(init_len)) // 2):
+#         prompt += str(i % 10) + " "
+#     return prompt + suffix
 
 lengths = [8000]
 # lengths = [50, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
@@ -108,8 +108,8 @@ line_x2 = np.linspace(min(col1_2), max(col1_2), 100)
 line2 = slope2 * line_x1 + intercept2
 line3 = slope3 * line_x2 + intercept3
 
-plt.rcParams.update({'legend.fontsize': 27, 'axes.edgecolor': 'black',
-                     'axes.linewidth': 3.0, 'font.size': 27})
+plt.rcParams.update({'legend.fontsize': 19, 'axes.edgecolor': 'black',
+                     'axes.linewidth': 2.2, 'font.size': 25})
 
 ### plot in a single figure
 # fig, ax1 = plt.subplots(figsize=[16, 6])
@@ -137,7 +137,7 @@ plt.rcParams.update({'legend.fontsize': 27, 'axes.edgecolor': 'black',
 # plt.savefig('gpt4-latency.pdf')
 
 ### plot in two figures
-fig, ax1 = plt.subplots(figsize=[16, 6])
+fig, ax1 = plt.subplots(figsize=[14, 6])
 plt.tight_layout(pad=2)
 # Plot the first dataset with its regression
 ax1.scatter(col1_1, col2, color=black_color, label='Various input, fixed output', marker='x', linewidth=3, s=200)
@@ -152,7 +152,7 @@ ax1.legend(loc='upper left')
 plt.savefig('gpt4-latency-input.pdf')
 # plt.show()
 
-fig, ax2 = plt.subplots(figsize=[16, 6])
+fig, ax2 = plt.subplots(figsize=[14, 6])
 plt.tight_layout(pad=2)
 # Create a second x-axis for the second dataset
 ax2.scatter(col1_2, col3, color=black_color, label='Fixed input, various output', linewidth=3, s=200)

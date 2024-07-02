@@ -6,9 +6,12 @@ from typing import Optional
 from threading import Thread
 from queue import Queue
 from openai import ChatCompletion, Stream
-
 from .skillset import SkillSet
-from .utils import split_args
+from .utils import split_args, print_t
+
+def print_debug(*args):
+    print(*args)
+    # pass
 
 MiniSpecValueType = Union[int, float, bool, str, None]
 
@@ -52,6 +55,7 @@ class MiniSpecProgram:
         self.statements: List[Statement] = []
         self.depth = 0
         self.finished = False
+        self.ret = False
         if env is None:
             self.env = {}
         else:
@@ -67,6 +71,11 @@ class MiniSpecProgram:
             if code == None or len(code) == 0:
                 continue
             for c in code:
+                if self.current_statement.parse(c, exec):
+                    if len(self.current_statement.action) > 0:
+                        print_debug("Adding statement: ", self.current_statement, exec)
+                        self.statements.append(self.current_statement)
+                    self.current_statement = Statement(self.env)
                 if c == '{':
                     self.depth += 1
                 elif c == '}':
@@ -74,15 +83,10 @@ class MiniSpecProgram:
                         self.finished = True
                         return True
                     self.depth -= 1
-                    
-                if self.current_statement.parse(c, exec):
-                    if len(self.current_statement.action) > 0:
-                        self.statements.append(self.current_statement)
-                    self.current_statement = Statement(self.env)
         return False
     
     def eval(self) -> MiniSpecReturnValue:
-        print(f'Executing program: {self} {self.finished}')
+        print_debug(f'Eval program: {self}, finished: {self.finished}')
         ret_val = MiniSpecReturnValue.default()
         count = 0
         while not self.finished:
@@ -90,13 +94,17 @@ class MiniSpecProgram:
                 time.sleep(0.1)
                 continue
             ret_val = self.statements[count].eval()
-            if ret_val.replan:
+            if ret_val.replan or self.statements[count].ret:
+                print_debug(f'RET from {self.statements[count]} with {ret_val} {self.statements[count].ret}')
+                self.ret = True
                 return ret_val
             count += 1
         if count < len(self.statements):
             for i in range(count, len(self.statements)):
                 ret_val = self.statements[i].eval()
-                if ret_val.replan:
+                if ret_val.replan or self.statements[count].ret:
+                    print_debug(f'RET from {self.statements[count]} with {ret_val} {self.statements[count].ret}')
+                    self.ret = True
                     return ret_val
         return ret_val
     
@@ -118,8 +126,10 @@ class Statement:
         self.action: str = ''
         self.allow_digit: bool = False
         self.executable: bool = False
+        self.ret: bool = False
         self.sub_statements: Optional[MiniSpecProgram] = None
         self.env = env
+        self.read_argument: bool = False
 
     def get_env_value(self, var) -> MiniSpecValueType:
         if var not in self.env:
@@ -130,18 +140,22 @@ class Statement:
         for c in code:
             match self.parsing_state:
                 case ParsingState.CODE:
-                    if c == '?':
+                    if c == '?' and not self.read_argument:
                         self.action = 'if'
                         self.parsing_state = ParsingState.CONDITION
                     elif c == ';' or c == '}' or c == ')':
                         if c == ')':
                             self.code_buffer += c
+                            self.read_argument = False
                         self.action = self.code_buffer
+                        print_debug(f'SP Action: {self.code_buffer}')
                         self.executable = True
                         if exec and self.action != '':
                             self.execution_queue.put(self)
                         return True
                     else:
+                        if c == '(':
+                            self.read_argument = True
                         if c.isalpha() or c == '_':
                             self.allow_digit = True
                         self.code_buffer += c
@@ -150,7 +164,7 @@ class Statement:
                         self.parsing_state = ParsingState.LOOP_COUNT
                 case ParsingState.CONDITION:
                     if c == '{':
-                        print(f'Parse Condition: {self.code_buffer}')
+                        print_debug(f'SP Condition: {self.code_buffer}')
                         self.condition = self.code_buffer
                         self.executable = True
                         if exec:
@@ -161,7 +175,7 @@ class Statement:
                         self.code_buffer += c
                 case ParsingState.LOOP_COUNT:
                     if c == '{':
-                        print(f'Parse Loop count: {self.code_buffer}')
+                        print_debug(f'SP Loop: {self.code_buffer}')
                         self.loop_count = int(self.code_buffer)
                         self.executable = True
                         if exec:
@@ -176,42 +190,53 @@ class Statement:
         return False
     
     def eval(self) -> MiniSpecReturnValue:
-        print(f'Executing: {self} {self.action} {self.condition} {self.loop_count}')
+        print_debug(f'Statement eval: {self} {self.action} {self.condition} {self.loop_count}')
         while not self.executable:
             time.sleep(0.1)
         if self.action == 'if':
-            cond = self.eval_condition(self.condition)
-            if cond:
-                print(f'Executing Condition statement: {self.sub_statements}')
-                return self.sub_statements.eval()
+            ret_val = self.eval_condition(self.condition)
+            if ret_val.replan:
+                return ret_val
+            if ret_val.value:
+                print_debug(f'-> eval condition statement: {self.sub_statements}')
+                ret_val = self.sub_statements.eval()
+                if ret_val.replan or self.sub_statements.ret:
+                    self.ret = True
+                return ret_val
+            else:
+                return MiniSpecReturnValue.default()
         elif self.action == 'loop':
-            print(f'Executing Loop statement: {self.loop_count} {self.sub_statements}')
+            print_debug(f'-> eval loop statement: {self.loop_count} {self.sub_statements}')
             ret_val = MiniSpecReturnValue.default()
             for _ in range(self.loop_count):
+                print_debug(f'-> loop iteration: {ret_val}')
                 ret_val = self.sub_statements.eval()
-                if ret_val.replan:
+                if ret_val.replan or self.sub_statements.ret:
+                    self.ret = True
                     return ret_val
             return ret_val
         else:
             return self.eval_action(self.action)
     
     def eval_action(self, action: str) -> MiniSpecReturnValue:
-        print(f'Action: {action}')
-        action = action.strip().split('=', 1)
-        if len(action) == 2:
-            var, func = action
-            print(f'Var: {var}, Func: {func}')
-            ret_val = self.eval_function(func)
+        action = action.strip()
+        print_debug(f'Eval action: {action}')
+        
+        if '=' in action:
+            var, func = action.split('=')
+            print_debug(f'Assignment: Var: {var.strip()}, Val: {func.strip()}')
+            ret_val = self.eval_function(func.strip())
             if not ret_val.replan:
                 self.env[var.strip()] = ret_val.value
             return ret_val
-        elif len(action) == 1:
-            return self.eval_function(action[0])
+        elif action.startswith('->'):
+            self.ret = True
+            return self.eval_var(action.lstrip("->"))
         else:
-            raise Exception('Invalid function call statement')
-        
+            return self.eval_function(action)
+
     def eval_function(self, func: str) -> MiniSpecReturnValue:
-        print(f'Function: {func}')
+        print_debug(f'Eval function: {func}')
         # append to execution state queue
         func = func.split('(', 1)
         name = func[0].strip()
@@ -234,16 +259,16 @@ class Statement:
         else:
             skill_instance = Statement.low_level_skillset.get_skill(name)
             if skill_instance is not None:
-                print(f'Executing low-level skill: {skill_instance.get_name()} {args}')
+                print_debug(f'Executing low-level skill: {skill_instance.get_name()} {args}')
                 return MiniSpecReturnValue.from_tuple(skill_instance.execute(args))
 
             skill_instance = Statement.high_level_skillset.get_skill(name)
             if skill_instance is not None:
+                print_debug(f'Executing high-level skill: {skill_instance.get_name()}', args, skill_instance.execute(args))
                 interpreter = MiniSpecProgram()
                 interpreter.parse([skill_instance.execute(args)])
-                print(f'Executing high-level skill: {skill_instance.get_name()}', args, skill_instance.execute(args))
+                interpreter.finished = True
                 val = interpreter.eval()
-                val = MiniSpecReturnValue.default()
                 if val.value == 'rp':
                     return MiniSpecReturnValue(f'High-level skill {skill_instance.get_name()} failed', True)
                 return val
@@ -290,6 +315,8 @@ class Statement:
         if operand_2.replan:
             return operand_2
         
+        print_debug(f'Condition ops: {operand_1.value} {comparator} {operand_2.value}')
+
         if type(operand_1.value) != type(operand_2.value):
             if comparator == '!=':
                 return MiniSpecReturnValue(True, False)
@@ -310,7 +337,6 @@ class Statement:
             raise Exception(f'Invalid comparator: {comparator}')
         
         return MiniSpecReturnValue(cmp, False)
-
 
     def __repr__(self) -> str:
         s = ''
@@ -332,7 +358,7 @@ class MiniSpecInterpreter:
         self.env = {}
         self.ret = False
         self.code_buffer: str = ''
-        self.execution_status = []
+        self.execution_history = []
         if Statement.low_level_skillset is None or \
             Statement.high_level_skillset is None:
             raise Exception('Statement: Skillset is not initialized')
@@ -341,170 +367,43 @@ class MiniSpecInterpreter:
         self.execution_thread = Thread(target=self.executor)
         self.execution_thread.start()
 
+        self.timestamp_get_plan = None
+        self.timestamp_start_execution = None
+        self.timestamp_end_execution = None
+        self.program_count = 0
+        self.ret_queue = Queue()
+
     def execute(self, code: Stream[ChatCompletion.ChatCompletionChunk] | List[str]) -> MiniSpecReturnValue:
+        print_t(f'>>> Get a stream')
+        self.execution_history = []
+        self.timestamp_get_plan = time.time()
         program = MiniSpecProgram()
         program.parse(code, True)
-        print("Program: ", program, len(program.statements))
+        self.program_count = len(program.statements)
+        t2 = time.time()
+        print_t(">>> Program: ", program, "Time: ", t2 - self.timestamp_get_plan)
 
     def executor(self):
         while True:
             if not Statement.execution_queue.empty():
+                if self.timestamp_start_execution is None:
+                    self.timestamp_start_execution = time.time()
+                    print_t(">>> Start execution")
                 statement = Statement.execution_queue.get()
-                print(f'Queue get statement: {statement}')
-                statement.eval()
-            else:
-                time.sleep(0.1)
-
-    def get_env_value(self, var) -> MiniSpecValueType:
-        if var not in self.env:
-            raise Exception(f'Variable {var} is not defined')
-        return self.env[var]
-
-    def execute_old(self, code) -> MiniSpecReturnValue:
-        # print(f'Executing: {code}, depth={self.depth}')
-        statements = self.split_statements(code)
-        for statement in statements:
-            if not statement:
-                continue
-            elif statement.startswith('->'):
-                # return statement, won't trigger replan
-                return self.evaluate_return(statement)
-            elif re.match(r'^\d', statement):
-                # loop statement, may trigger replan
-                ret_val = self.execute_loop(statement)
-            elif statement.startswith('?'):
-                # conditional statement, may trigger replan
-                ret_val = self.execute_conditional(statement)
-            else:
-                # function call, may trigger replan
-                ret_val = self.execute_function_call(statement)
-
-            if ret_val.replan:
-                return ret_val
-            
-            if self.ret:
-                return ret_val
-        return MiniSpecReturnValue.default()
-
-    def evaluate_return(self, statement) -> MiniSpecReturnValue:
-        _, value = statement.split('->')
-        if value.startswith('_'):
-            value = self.get_env_value(value)
-        else:
-            value = evaluate_value(value.strip())
-        self.ret = True
-        return MiniSpecReturnValue(value, False)
-
-    def execute_function_call(self, statement) -> MiniSpecReturnValue:
-        splits = statement.split('=', 1)
-        split_count = len(splits)
-        if split_count == 2:
-            var, func = splits
-            ret_val = self.call_function(func)
-            if not ret_val.replan:
-                self.env[var.strip()] = ret_val.value
-            return ret_val
-        elif split_count == 1:
-            return self.call_function(statement)
-        else:
-            raise Exception('Invalid function call statement')
-
-    def evaluate_condition(self, condition) -> MiniSpecReturnValue:
-        if '&' in condition:
-            conditions = condition.split('&')
-            cond = True
-            for c in conditions:
-                ret_val = self.evaluate_condition(c)
+                print_debug(f'Queue get statement: {statement}')
+                ret_val = statement.eval()
+                print_t(f'Queue statement done: {statement}')
+                self.execution_history.append(statement)
                 if ret_val.replan:
-                    return ret_val
-                cond = cond and ret_val.value
-            return MiniSpecReturnValue(cond, False)
-        if '|' in condition:
-            conditions = condition.split('|')
-            for c in conditions:
-                ret_val = self.evaluate_condition(c)
-                if ret_val.replan:
-                    return ret_val
-                if ret_val.value == True:
-                    return MiniSpecReturnValue(True, False)
-            return MiniSpecReturnValue(False, False)
-        
-        operand_1, comparator, operand_2 = re.split(r'(>|<|==|!=)', condition)
-        operand_1 = self.evaluate_operand(operand_1)
-        if operand_1.replan:
-            return operand_1
-        operand_2 = self.evaluate_operand(operand_2)
-        if operand_2.replan:
-            return operand_2
-        
-        if type(operand_1.value) != type(operand_2.value):
-            if comparator == '!=':
-                return MiniSpecReturnValue(True, False)
-            elif comparator == '==':
-                return MiniSpecReturnValue(False, False)
+                    print_t(f'Queue statement replan: {statement}')
+                    self.ret_queue.put(ret_val)
+                    return
+                self.program_count -= 1
+                if self.program_count == 0:
+                    self.timestamp_end_execution = time.time()
+                    print_t(f'>>> Execution time: {self.timestamp_end_execution - self.timestamp_start_execution}')
+                    self.timestamp_start_execution = None
+                    self.ret_queue.put(ret_val)
+                    return
             else:
-                raise Exception(f'Invalid comparator: {operand_1.value}:{type(operand_1.value)} {operand_2.value}:{type(operand_2.value)}')
-        
-        if comparator == '>':
-            cmp = operand_1.value > operand_2.value
-        elif comparator == '<':
-            cmp = operand_1.value < operand_2.value
-        elif comparator == '==':
-            cmp = operand_1.value == operand_2.value
-        elif comparator == '!=':
-            cmp = operand_1.value != operand_2.value
-        else:
-            raise Exception(f'Invalid comparator: {comparator}')
-        
-        return MiniSpecReturnValue(cmp, False)
-        
-    def evaluate_operand(self, operand) -> MiniSpecReturnValue:
-        operand = operand.strip()
-        if len(operand) == 0:
-            raise Exception('Empty operand')
-        if operand.startswith('_'):
-            # variable
-            return MiniSpecReturnValue(self.get_env_value(operand), False)
-        elif operand == 'True' or operand == 'False':
-            # boolean
-            return MiniSpecReturnValue(evaluate_value(operand), False)
-        elif operand[0].isalpha():
-            # function call
-            return self.execute_function_call(operand)
-        else:
-            # value
-            return MiniSpecReturnValue(evaluate_value(operand), False)
-
-    def call_function(self, func) -> MiniSpecReturnValue:
-        self.execution_status.append(func)
-        splits = func.split('(', 1)
-        name = splits[0].strip()
-        if len(splits) == 2:
-            args = splits[1].strip()[:-1]
-            args = split_args(args)
-            for i in range(0, len(args)):
-                args[i] = args[i].strip().strip('\'"')
-                if args[i].startswith('_'):
-                    args[i] = self.get_env_value(args[i])
-        else:
-            args = []
-
-        if name == 'int':
-            return MiniSpecReturnValue(int(args[0]), False)
-        elif name == 'float':
-            return MiniSpecReturnValue(float(args[0]), False)
-        elif name == 'str':
-            return MiniSpecReturnValue(args[0], False)
-        else:
-            skill_instance = MiniSpecInterpreter.low_level_skillset.get_skill(name)
-            if skill_instance is not None:
-                return MiniSpecReturnValue.from_tuple(skill_instance.execute(args))
-
-            skill_instance = MiniSpecInterpreter.high_level_skillset.get_skill(name)
-            if skill_instance is not None:
-                interpreter = MiniSpecInterpreter()
-                val = interpreter.execute(skill_instance.execute(args))
-                if val.value == 'rp':
-                    return MiniSpecReturnValue(f'High-level skill {skill_instance.get_name()} failed', True)
-                return val
-            raise Exception(f'Skill {name} is not defined')
+                time.sleep(0.005)

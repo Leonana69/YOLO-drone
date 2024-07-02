@@ -1,6 +1,8 @@
 from djitellopy import Tello
 import cv2
 
+cv2.utils.logging.setLogLevel(cv2.utils.logging.LOG_LEVEL_ERROR)
+
 class TelloLLM():
     def __init__(self):
         self.drone = Tello()

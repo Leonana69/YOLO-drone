@@ -11,7 +11,7 @@ Description of the two skill sets:
 
 The 'scene description' is an object list of the current view, containing their names with ID, location, and size (location and size are floats between 0~1). This may not be useful if the task is about the environment outside the view.
 The 'task description' is a natural language sentence, describing the user's instructions. It may start with "[A]" or "[Q]". "[A]" sentences mean you should generate an execution plan for the robot. "[Q]" sentences mean you should use 'log' to show a literal answer at the end of the plan execution. Please carefully reason about the 'task description', you should interpret it and generate a detailed multi-step plan to achieve it as much as you can 
-The 'previous response' is the MiniSpec plan you generated in the last round. The 'execution status' is the result of the execution of the previous response. When they are provided, that means the robot is in a new scene, and the user wants to continue the task based on the previous response. You should reason about the 'execution status' and generate a new response accordingly.
+The 'execution history' is the actions have been taken from previous response. When they are provided, that means the robot is doing replanning, and the user wants to continue the task based on the task and history. You should reason about the 'execution history' and generate a new response accordingly.
 
 Here are some extra guides for you to better understand the task and generate a better response:
 {guides}
@@ -24,6 +24,9 @@ Here is the 'scene description':
 
 Here is the 'task description':
 {task_description}
+
+Here is the 'execution history' (has value if replanning):
+{execution_history}
 
 Please generate the response only with a single sentence of MiniSpec program.
 'response':

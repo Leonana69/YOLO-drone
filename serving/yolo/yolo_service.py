@@ -93,7 +93,7 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
     
     def process_image(self, image, id=None, conf=0.3):
         if self.stream_mode:
-            result = self.standard_model.track(image, verbose=False, persist=True, conf=conf, tracker="bytetrack.yaml")[0]
+            result = self.standard_model.track(image, verbose=False, conf=conf, tracker="bytetrack.yaml")[0]
             if self.custom_target:
                 result_custom = self.custom_model.track(image, verbose=False, conf=0.05, tracker="bytetrack.yaml")[0]
         else:
