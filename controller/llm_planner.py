@@ -9,7 +9,7 @@ from .minispec_interpreter import MiniSpecValueType, evaluate_value
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class LLMPlanner():
-    def __init__(self, gear=False):
+    def __init__(self):
         self.llm = LLMWrapper()
         self.model_name = GPT4
 

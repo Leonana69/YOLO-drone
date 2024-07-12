@@ -3,6 +3,7 @@ import queue, time, os, json
 from typing import Optional, Tuple
 import asyncio
 import uuid
+from enum import Enum
 
 from .shared_frame import SharedFrame, Frame
 from .yolo_client import YoloClient
@@ -15,12 +16,16 @@ from .llm_planner import LLMPlanner
 from .skillset import SkillSet, LowLevelSkillItem, HighLevelSkillItem, SkillArg
 from .utils import print_t, input_t
 from .minispec_interpreter import MiniSpecInterpreter, Statement
-from .gear_wrapper import GearWrapper
+
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class LLMController():
-    def __init__(self, use_virtual_robot=True, use_http=False, gear=False, message_queue: Optional[queue.Queue]=None):
+    class RobotType(Enum):
+        VIRTUAL = 0
+        TELLO = 1
+        GEAR = 2
+    def __init__(self, robot_type, use_http=False, message_queue: Optional[queue.Queue]=None):
         self.shared_frame = SharedFrame()
         if use_http:
             self.yolo_client = YoloClient(shared_frame=self.shared_frame)
@@ -40,17 +45,19 @@ class LLMController():
         if not os.path.exists(self.cache_folder):
             os.makedirs(self.cache_folder)
         
-        if use_virtual_robot:
-            print_t("[C] Start virtual drone...")
-            self.drone: RobotWrapper = VirtualRobotWrapper()
-        elif gear:
-            print_t("[C] Start real robot car...")
-            self.drone: RobotWrapper = GearWrapper()
-        else:
-            print_t("[C] Start real drone...")
-            self.drone: RobotWrapper = TelloWrapper()
+        match robot_type:
+            case LLMController.RobotType.TELLO:
+                print_t("[C] Start Tello drone...")
+                self.drone: RobotWrapper = TelloWrapper()
+            case LLMController.RobotType.GEAR:
+                print_t("[C] Start Gear robot car...")
+                from .gear_wrapper import GearWrapper
+                self.drone: RobotWrapper = GearWrapper()
+            case _:
+                print_t("[C] Start virtual drone...")
+                self.drone: RobotWrapper = VirtualRobotWrapper()
         
-        self.planner = LLMPlanner(gear)
+        self.planner = LLMPlanner()
 
         # load low-level skills
         self.low_level_skillset = SkillSet(level="low")

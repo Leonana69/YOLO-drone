@@ -27,7 +27,7 @@ make typefly
 ```
 This will start the web UI at `http://localhost:50001` with your default camera (please make sure your device has a camera) and a virtual drone wrapper. You should be able to see the image capture window displayed with YOLO detection results. You can test the planning ability of TypeFly by typing in the chat box. 
 
-To work with a real drone, please disable the `--use_virtual_cam` flag in `Makefile`.
+To work with a real drone, please disable the `--use_virtual_robot` flag in `Makefile`.
 
 Here we assume your YOLO and router are deployed on the same machine running the TypeFly webui, if not, please define the environment variables `VISION_SERVICE_IP`, which is the IP address where you deploy your YOLO (or router) service, before running the webui.
 

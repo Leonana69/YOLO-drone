@@ -17,14 +17,14 @@ from controller.llm_wrapper import GPT4, LLAMA3
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class TypeFly:
-    def __init__(self, use_virtual_robot=True, use_http=False, gear=False):
+    def __init__(self, robot_type, use_http=False):
          # create a cache folder
         self.cache_folder = os.path.join(CURRENT_DIR, 'cache')
         if not os.path.exists(self.cache_folder):
             os.makedirs(self.cache_folder)
         self.message_queue = queue.Queue()
         self.message_queue.put(self.cache_folder)
-        self.llm_controller = LLMController(use_virtual_robot, use_http, gear, self.message_queue)
+        self.llm_controller = LLMController(robot_type, use_http, self.message_queue)
         self.system_stop = False
         self.ui = gr.Blocks(title="TypeFly")
         self.asyncio_loop = asyncio.get_event_loop()
@@ -118,5 +118,10 @@ if __name__ == "__main__":
     parser.add_argument('--use_http', action='store_true')
     parser.add_argument('--gear', action='store_true')
     args = parser.parse_args()
-    typefly = TypeFly(use_virtual_robot=args.use_virtual_robot, use_http=args.use_http, gear=args.gear)
+    robot_type = LLMController.RobotType.TELLO
+    if args.use_virtual_robot:
+        robot_type = LLMController.RobotType.VIRTUAL
+    elif args.gear:
+        robot_type = LLMController.RobotType.GEAR
+    typefly = TypeFly(robot_type, use_http=args.use_http)
     typefly.run()
