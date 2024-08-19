@@ -26,7 +26,7 @@ Example 5:
 Scene: [chair_3,laptop_1,bottle_5]
 Task: [A] Find and go any edible object.
 Reason: edible object is abstract and there is no edible object in the scene, so we use scan_abstract to find the edible object
-Response: _1=sa('Any edible target here?');?_1!=False{g(_1,10)};
+Response: _1=sa('Any edible target here?');?_1!=False{g(_1)};
 
 Example 6:
 Scene: [chair_3,laptop_9]

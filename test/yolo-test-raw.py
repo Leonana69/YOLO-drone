@@ -2,7 +2,7 @@ from ultralytics import YOLOWorld, YOLO
 import cv2
 
 # model = YOLOWorld('yolov8s-worldv2.pt')
-model = YOLO('yolov8s.pt')
+model = YOLO('yolov10x.pt')
 # model.set_class(['suitcase', 'person'])
 
 def format_result(yolo_result):
@@ -70,7 +70,6 @@ while True:
         break
     # detect
     inference = model.track(frame, conf=0.1)
-    print(inference)
     result = format_result(inference[0])
     # result = format_result(model.track(frame, conf=0.1, persist=True, tracker="bytetrack.yaml")[0])
     plot_results(frame, result)

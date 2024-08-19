@@ -117,11 +117,15 @@ if __name__ == "__main__":
     parser.add_argument('--use_virtual_robot', action='store_true')
     parser.add_argument('--use_http', action='store_true')
     parser.add_argument('--gear', action='store_true')
+    parser.add_argument('--pod', action='store_true')
+
     args = parser.parse_args()
     robot_type = LLMController.RobotType.TELLO
     if args.use_virtual_robot:
         robot_type = LLMController.RobotType.VIRTUAL
     elif args.gear:
         robot_type = LLMController.RobotType.GEAR
+    elif args.pod:
+        robot_type = LLMController.RobotType.POD
     typefly = TypeFly(robot_type, use_http=args.use_http)
     typefly.run()
