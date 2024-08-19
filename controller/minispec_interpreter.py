@@ -102,8 +102,8 @@ class MiniSpecProgram:
         if count < len(self.statements):
             for i in range(count, len(self.statements)):
                 ret_val = self.statements[i].eval()
-                if ret_val.replan or self.statements[count].ret:
-                    print_debug(f'RET from {self.statements[count]} with {ret_val} {self.statements[count].ret}')
+                if ret_val.replan or self.statements[i].ret:
+                    print_debug(f'RET from {self.statements[i]} with {ret_val} {self.statements[i].ret}')
                     self.ret = True
                     return ret_val
         return ret_val
