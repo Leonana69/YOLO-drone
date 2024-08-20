@@ -151,6 +151,7 @@ class LLMController():
             # set class for yolo
             # self.yolo_client.set_class(self.planner.get_class(task_description))
             self.current_plan = self.planner.plan(task_description, execution_history=self.execution_history)
+            self.append_message(f'Plan: {self.current_plan}')
             # consent = input_t(f"[C] Get plan: {self.current_plan}, executing?")
             # if consent == 'n':
             #     print_t("[C] > Plan rejected <")
@@ -159,7 +160,7 @@ class LLMController():
                 ret_val = self.execute_minispec(self.current_plan)
             except Exception as e:
                 print_t(f"[C] Error: {e}")
-            # break
+            break
             
             # disable replan for now
             if ret_val.replan:

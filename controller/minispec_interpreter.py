@@ -102,8 +102,8 @@ class MiniSpecProgram:
         if count < len(self.statements):
             for i in range(count, len(self.statements)):
                 ret_val = self.statements[i].eval()
-                if ret_val.replan or self.statements[count].ret:
-                    print_debug(f'RET from {self.statements[count]} with {ret_val} {self.statements[count].ret}')
+                if ret_val.replan or self.statements[i].ret:
+                    print_debug(f'RET from {self.statements[i]} with {ret_val} {self.statements[i].ret}')
                     self.ret = True
                     return ret_val
         return ret_val
@@ -393,6 +393,9 @@ class MiniSpecInterpreter:
                 print_debug(f'Queue get statement: {statement}')
                 ret_val = statement.eval()
                 print_t(f'Queue statement done: {statement}')
+                if statement.ret:
+                    Statement.execution_queue.clear()
+                    return
                 self.execution_history.append(statement)
                 if ret_val.replan:
                     print_t(f'Queue statement replan: {statement}')

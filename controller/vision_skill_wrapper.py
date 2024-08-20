@@ -58,8 +58,23 @@ class VisionSkillWrapper():
         self.aruco_detector = cv2.aruco.ArucoDetector(
             cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250),
             cv2.aruco.DetectorParameters())
-    
+        
     def update(self):
+        if self.shared_frame.timestamp == self.last_update:
+            return
+        self.last_update = self.shared_frame.timestamp
+        self.object_list = []
+        objs = self.shared_frame.get_yolo_result()['result'] + self.shared_frame.get_yolo_result()['result_custom']
+        for obj in objs:
+            name = obj['name']
+            box = obj['box']
+            x = (box['x1'] + box['x2']) / 2
+            y = (box['y1'] + box['y2']) / 2
+            w = box['x2'] - box['x1']
+            h = box['y2'] - box['y1']
+            self.object_list.append(ObjectInfo(name, x, y, w, h))
+    
+    def _update(self):
         if self.shared_frame.timestamp == self.last_update:
             return
         self.last_update = self.shared_frame.timestamp
