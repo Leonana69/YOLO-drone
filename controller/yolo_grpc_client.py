@@ -73,7 +73,7 @@ class YoloGRPCClient():
         if self.shared_frame is not None:
             self.shared_frame.set(self.frame_queue.get(), json_results)
 
-    async def detect(self, frame: Frame, conf=0.3):
+    async def detect(self, frame: Frame, conf=0.2):
         if not self.is_async_inited:
             self.init_async_channel()
 

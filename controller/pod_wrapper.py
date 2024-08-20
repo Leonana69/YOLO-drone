@@ -56,7 +56,7 @@ class PodWrapper(RobotWrapper):
     def move_forward(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving forward {distance} cm")
         while distance > 0:
-            self.robot.send_command_hover(self.height, -self.move_speed, 0, 0)
+            self.robot.send_command_hover(self.height, self.move_speed, 0, 0)
             time.sleep(0.1)
             distance -= 2
         self.robot.send_command_hover(self.height, 0, 0, 0)
@@ -65,7 +65,7 @@ class PodWrapper(RobotWrapper):
     def move_backward(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving backward {distance} cm")
         while distance > 0:
-            self.robot.send_command_hover(self.height, self.move_speed, 0, 0)
+            self.robot.send_command_hover(self.height, -self.move_speed, 0, 0)
             time.sleep(0.1)
             distance -= 2
         self.robot.send_command_hover(self.height, 0, 0, 0)
@@ -73,56 +73,49 @@ class PodWrapper(RobotWrapper):
 
     def move_left(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving left {distance} cm")
-        # self.robot.send_command_hover(0, 0, 0, 0)
-        # while distance > 0:
-        #     self.robot.send_command_hover(0, 0, -self.move_speed_y, 0)
-        #     time.sleep(0.1)
-        #     distance -= 2
-        # self.robot.send_command_hover(0, 0, 0, 0)
+        while distance > 0:
+            self.robot.send_command_hover(self.height, 0, -self.move_speed, 0)
+            time.sleep(0.1)
+            distance -= 2
+        self.robot.send_command_hover(self.height, 0, 0, 0)
         return True, False
 
     def move_right(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving right {distance} cm")
-        # self.robot.send_command_hover(0, 0, 0, 0)
-        # while distance > 0:
-        #     self.robot.send_command_hover(0, 0, self.move_speed_y, 0)
-        #     time.sleep(0.1)
-        #     distance -= 2
-        # self.robot.send_command_hover(0, 0, 0, 0)
+        while distance > 0:
+            self.robot.send_command_hover(self.height, 0, self.move_speed, 0)
+            time.sleep(0.1)
+            distance -= 2
+        self.robot.send_command_hover(self.height, 0, 0, 0)
         return True, False
 
     def move_up(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving up {distance} cm")
-        # self.height += distance / 100
-        # self.robot.send_command_hover(self.height, 0, 0, 0)
+        self.height += distance / 100
+        self.robot.send_command_hover(self.height, 0, 0, 0)
         return True, False
 
     def move_down(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving down {distance} cm")
-        # self.height -= distance / 100
-        # self.robot.send_command_hover(self.height, 0, 0, 0)
+        self.height -= distance / 100
+        self.robot.send_command_hover(self.height, 0, 0, 0)
         return True, False
 
     def turn_ccw(self, degree: int) -> Tuple[bool, bool]:
         print(f"-> Turning CCW {degree} degrees")
-        # self.robot.send_command_hover(0, 0, 0, 0)
-        # self.robot.send_command_position(0, 0, 0, degree)
-        # time.sleep(1 + degree / 50.0)
-        # self.robot.send_command_hover(0, 0, 0, 0)
-        # if degree >= 90:
-        #     print("-> Turning CCW over 90 degrees")
-        #     return True, True
+        while degree > 0:
+            self.robot.send_command_hover(self.height, 0, 0, 20)
+            time.sleep(0.1)
+            degree -= 5
+        self.robot.send_command_hover(self.height, 0, 0, 0)
         return True, False
 
     def turn_cw(self, degree: int) -> Tuple[bool, bool]:
         print(f"-> Turning CW {degree} degrees")
-        # self.robot.send_command_hover(0, 0, 0, 0)
-        # self.robot.send_command_position(0, 0, 0, -degree)
-        # time.sleep(1 + degree / 50.0)
-        # self.robot.send_command_hover(0, 0, 0, 0)
-        # if degree >= 90:
-        #     print("-> Turning CW over 90 degrees")
-        #     return True, True
+        while degree > 0:
+            self.robot.send_command_hover(self.height, 0, 0, -20)
+            time.sleep(0.1)
+            degree -= 5
         return True, False
     
     def move_in_circle(self, cw) -> Tuple[bool, bool]:

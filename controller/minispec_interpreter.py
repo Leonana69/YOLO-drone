@@ -394,7 +394,8 @@ class MiniSpecInterpreter:
                 ret_val = statement.eval()
                 print_t(f'Queue statement done: {statement}')
                 if statement.ret:
-                    Statement.execution_queue.clear()
+                    while not Statement.execution_queue.empty():
+                        Statement.execution_queue.get()
                     return
                 self.execution_history.append(statement)
                 if ret_val.replan:

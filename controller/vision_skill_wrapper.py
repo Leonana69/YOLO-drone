@@ -59,7 +59,7 @@ class VisionSkillWrapper():
             cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250),
             cv2.aruco.DetectorParameters())
         
-    def update(self):
+    def _update(self):
         if self.shared_frame.timestamp == self.last_update:
             return
         self.last_update = self.shared_frame.timestamp
@@ -74,7 +74,7 @@ class VisionSkillWrapper():
             h = box['y2'] - box['y1']
             self.object_list.append(ObjectInfo(name, x, y, w, h))
     
-    def _update(self):
+    def update(self):
         if self.shared_frame.timestamp == self.last_update:
             return
         self.last_update = self.shared_frame.timestamp
