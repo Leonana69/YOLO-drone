@@ -73,7 +73,7 @@ class YoloGRPCClient():
         if self.shared_frame is not None:
             self.shared_frame.set(self.frame_queue.get(), json_results)
 
-    async def detect(self, frame: Frame, conf=0.2):
+    async def detect(self, frame: Frame, conf=0.1):
         if not self.is_async_inited:
             self.init_async_channel()
 
@@ -82,7 +82,8 @@ class YoloGRPCClient():
             return
 
         image = frame.image
-        image_bytes = YoloGRPCClient.image_to_bytes(image.resize(self.image_size))
+        # do not resize for demo
+        image_bytes = YoloGRPCClient.image_to_bytes(image)
         async with self.frame_id_lock:
             image_id = self.frame_id
             self.frame_queue.put((self.frame_id, frame))

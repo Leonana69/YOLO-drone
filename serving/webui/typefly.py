@@ -33,7 +33,8 @@ class TypeFly:
             gr.HTML(open(os.path.join(CURRENT_DIR, 'header.html'), 'r').read())
             gr.HTML(open(os.path.join(CURRENT_DIR, 'drone-pov.html'), 'r').read())
             gr.ChatInterface(self.process_message, retry_btn=None, fill_height=False).queue()
-            gr.Checkbox(label='Use llama3', value=False).select(self.checkbox_llama3)
+            # TODO: Add checkbox to switch between llama3 and gpt4
+            # gr.Checkbox(label='Use llama3', value=False).select(self.checkbox_llama3)
 
     def checkbox_llama3(self):
         self.use_llama3 = not self.use_llama3

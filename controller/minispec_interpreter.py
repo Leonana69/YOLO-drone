@@ -316,6 +316,10 @@ class Statement:
             return operand_2
         
         print_debug(f'Condition ops: {operand_1.value} {comparator} {operand_2.value}')
+        if type(operand_1.value) == int and type(operand_2.value) == float or \
+            type(operand_1.value) == float and type(operand_2.value) == int:
+            operand_1.value = float(operand_1.value)
+            operand_2.value = float(operand_2.value)
 
         if type(operand_1.value) != type(operand_2.value):
             if comparator == '!=':
@@ -324,7 +328,7 @@ class Statement:
                 return MiniSpecReturnValue(False, False)
             else:
                 raise Exception(f'Invalid comparator: {operand_1.value}:{type(operand_1.value)} {operand_2.value}:{type(operand_2.value)}')
-            
+
         if comparator == '>':
             cmp = operand_1.value > operand_2.value
         elif comparator == '<':
@@ -396,6 +400,7 @@ class MiniSpecInterpreter:
                 if statement.ret:
                     while not Statement.execution_queue.empty():
                         Statement.execution_queue.get()
+                    self.ret_queue.put(ret_val)
                     return
                 self.execution_history.append(statement)
                 if ret_val.replan:

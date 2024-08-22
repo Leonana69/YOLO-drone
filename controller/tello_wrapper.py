@@ -51,7 +51,7 @@ class FrameReader:
     @property
     def frame(self):
         # Read a frame from the video capture
-        frame = self.fr.frame[0:720, 60:900]
+        frame = self.fr.frame
         frame = adjust_exposure(frame, alpha=1.3, beta=-30)
         return sharpen_image(frame)
         
@@ -136,13 +136,13 @@ class TelloWrapper(RobotWrapper):
     def turn_ccw(self, degree: int) -> Tuple[bool, bool]:
         self.drone.rotate_counter_clockwise(degree)
         self.rotation_accumulator += degree
-        time.sleep(2.5)
+        time.sleep(1)
         return True, degree > SCENE_CHANGE_ANGLE
 
     def turn_cw(self, degree: int) -> Tuple[bool, bool]:
         self.drone.rotate_clockwise(degree)
         self.rotation_accumulator -= degree
-        time.sleep(2.5)
+        time.sleep(1)
         return True, degree > SCENE_CHANGE_ANGLE
     
     def is_battery_good(self) -> bool:

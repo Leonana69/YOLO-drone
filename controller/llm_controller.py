@@ -73,8 +73,8 @@ class LLMController():
         self.low_level_skillset.add_skill(LowLevelSkillItem("move_down", self.drone.move_down, "Move down by a distance", args=[SkillArg("distance", int)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("turn_cw", self.drone.turn_cw, "Rotate clockwise/right by certain degrees", args=[SkillArg("degrees", int)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("turn_ccw", self.drone.turn_ccw, "Rotate counterclockwise/left by certain degrees", args=[SkillArg("degrees", int)]))
-        self.low_level_skillset.add_skill(LowLevelSkillItem("move_in_circle", self.drone.move_in_circle, "Move in circle in cw/ccw", args=[SkillArg("cw", bool)]))
-        self.low_level_skillset.add_skill(LowLevelSkillItem("delay", self.skill_delay, "Wait for specified microseconds", args=[SkillArg("milliseconds", int)]))
+        # self.low_level_skillset.add_skill(LowLevelSkillItem("move_in_circle", self.drone.move_in_circle, "Move in circle in cw/ccw", args=[SkillArg("cw", bool)]))
+        self.low_level_skillset.add_skill(LowLevelSkillItem("delay", self.skill_delay, "Wait for specified seconds", args=[SkillArg("seconds", float)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("is_visible", self.vision.is_visible, "Check the visibility of target object", args=[SkillArg("object_name", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("object_x", self.vision.object_x, "Get object's X-coordinate in (0,1)", args=[SkillArg("object_name", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("object_y", self.vision.object_y, "Get object's Y-coordinate in (0,1)", args=[SkillArg("object_name", str)]))
@@ -86,6 +86,9 @@ class LLMController():
         self.low_level_skillset.add_skill(LowLevelSkillItem("take_picture", self.skill_take_picture, "Take a picture"))
         self.low_level_skillset.add_skill(LowLevelSkillItem("re_plan", self.skill_re_plan, "Replanning"))
 
+        self.low_level_skillset.add_skill(LowLevelSkillItem("goto", self.skill_goto, "goto the object", args=[SkillArg("object_name[*x-value]", str)]))
+        # self.low_level_skillset.add_skill(LowLevelSkillItem("follow", self.skill_follow, "follow the object", args=[SkillArg("object_name", str), SkillArg("duration(s)", int)]))
+        self.low_level_skillset.add_skill(LowLevelSkillItem("time", self.skill_time, "Get current execution time", args=[]))
         # load high-level skills
         self.high_level_skillset = SkillSet(level="high", lower_level_skillset=self.low_level_skillset)
         with open(os.path.join(CURRENT_DIR, "assets/high_level_skills.json"), "r") as f:
@@ -99,6 +102,54 @@ class LLMController():
 
         self.current_plan = None
         self.execution_history = None
+        self.execution_time = time.time()
+
+    def skill_time(self) -> Tuple[float, bool]:
+        return time.time() - self.execution_time, False
+
+    def skill_follow(self, object_name: str, duration: int) -> Tuple[None, bool]:
+        print(f'Follow {object_name} for {duration} seconds')
+        init_size = self.vision.object_width(object_name)[0]
+        init_time = time.time()
+        while time.time() - init_time < duration:
+            if not self.vision.is_visible(object_name):
+                print(f'Object {object_name} is not visible')
+                break
+            try:
+                x = self.vision.object_x(object_name)[0]
+                if x > 0.55:
+                    self.drone.turn_cw(int((x - 0.5) * 70))
+                elif x < 0.45:
+                    self.drone.turn_ccw(int((0.5 - x) * 70))
+
+                size = self.vision.object_width(object_name)[0]
+                print(f'%%%%>>>> size: {init_size} {size}')
+                if size < init_size * 0.8:
+                    self.drone.move_forward(30)
+                elif size > init_size * 1.2:
+                    self.drone.move_backward(30)
+                time.sleep(0.2)
+            except Exception as e:
+                print(f'Error: lost object {object_name}')
+                break
+        return None, False
+
+    def skill_goto(self, object_name: str) -> Tuple[None, bool]:
+        print(f'Goto {object_name}')
+        if '[' in object_name:
+            x = float(object_name.split('[')[1].split(']')[0])
+        else:
+            x = self.vision.object_x(object_name)[0]
+
+        print(f'>> GOTO x {x} {type(x)}')
+
+        if x > 0.55:
+            self.drone.turn_cw(int((x - 0.5) * 70))
+        elif x < 0.45:
+            self.drone.turn_ccw(int((0.5 - x) * 70))
+
+        self.drone.move_forward(100)
+        return None, False
 
     def skill_take_picture(self) -> Tuple[None, bool]:
         img_path = os.path.join(self.cache_folder, f"{uuid.uuid4()}.jpg")
@@ -115,8 +166,8 @@ class LLMController():
     def skill_re_plan(self) -> Tuple[None, bool]:
         return None, True
 
-    def skill_delay(self, ms: int) -> Tuple[None, bool]:
-        time.sleep(ms / 1000.0)
+    def skill_delay(self, s: float) -> Tuple[None, bool]:
+        time.sleep(s)
         return None, False
 
     def append_message(self, message: str):
@@ -157,6 +208,7 @@ class LLMController():
             #     print_t("[C] > Plan rejected <")
             #     return
             try:
+                self.execution_time = time.time()
                 ret_val = self.execute_minispec(self.current_plan)
             except Exception as e:
                 print_t(f"[C] Error: {e}")
@@ -204,7 +256,7 @@ class LLMController():
             else:
                 # asynchronously send image to yolo server
                 asyncio_loop.call_soon_threadsafe(asyncio.create_task, self.yolo_client.detect(frame))
-            time.sleep(0.080)
+            time.sleep(0.10)
         # Cancel all running tasks (if any)
         for task in asyncio.all_tasks(asyncio_loop):
             task.cancel()
