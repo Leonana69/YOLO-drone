@@ -148,7 +148,7 @@ class LLMController():
         elif x < 0.45:
             self.drone.turn_ccw(int((0.5 - x) * 70))
 
-        self.drone.move_forward(100)
+        self.drone.move_forward(110)
         return None, False
 
     def skill_take_picture(self) -> Tuple[None, bool]:
@@ -159,7 +159,7 @@ class LLMController():
         return None, False
 
     def skill_log(self, text: str) -> Tuple[None, bool]:
-        self.append_message(text)
+        self.append_message(f"[LOG] {text}")
         print_t(f"[LOG] {text}")
         return None, False
     
@@ -186,7 +186,7 @@ class LLMController():
         return image
     
     def execute_minispec(self, minispec: str):
-        interpreter = MiniSpecInterpreter()
+        interpreter = MiniSpecInterpreter(self.message_queue)
         interpreter.execute(minispec)
         self.execution_history = interpreter.execution_history
         ret_val = interpreter.ret_queue.get()
@@ -202,7 +202,8 @@ class LLMController():
             # set class for yolo
             # self.yolo_client.set_class(self.planner.get_class(task_description))
             self.current_plan = self.planner.plan(task_description, execution_history=self.execution_history)
-            self.append_message(f'Plan: {self.current_plan}')
+            self.append_message(f'[Plan]: \\\\')
+            # self.append_message(self.current_plan)
             # consent = input_t(f"[C] Get plan: {self.current_plan}, executing?")
             # if consent == 'n':
             #     print_t("[C] > Plan rejected <")
@@ -220,7 +221,7 @@ class LLMController():
                 continue
             else:
                 break
-        self.append_message(f'Task ended')
+        self.append_message(f'\n[Task ended]')
         # self.append_message(f'Task complete with {ret_val.value if ret_val else None}')
         self.append_message('end')
         self.current_plan = None

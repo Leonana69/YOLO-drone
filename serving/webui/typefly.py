@@ -29,10 +29,17 @@ class TypeFly:
         self.ui = gr.Blocks(title="TypeFly")
         self.asyncio_loop = asyncio.get_event_loop()
         self.use_llama3 = False
+        default_sentences = [
+            "Find something I can eat.",
+            "What you can see?",
+            "Follow that ball for 20 seconds",
+            "Find a chair for me.",
+            "Go to the chair without book.",
+        ]
         with self.ui:
             gr.HTML(open(os.path.join(CURRENT_DIR, 'header.html'), 'r').read())
             gr.HTML(open(os.path.join(CURRENT_DIR, 'drone-pov.html'), 'r').read())
-            gr.ChatInterface(self.process_message, retry_btn=None, fill_height=False).queue()
+            gr.ChatInterface(self.process_message, retry_btn=None, fill_height=False, examples=default_sentences).queue()
             # TODO: Add checkbox to switch between llama3 and gpt4
             # gr.Checkbox(label='Use llama3', value=False).select(self.checkbox_llama3)
 
@@ -63,11 +70,17 @@ class TypeFly:
                     # history.append((message, complete_response))
                     history.append((None, msg))
                     # complete_response = ''
-                else:
+                elif isinstance(msg, str):
                     if msg == 'end':
                         # Indicate end of the task to Gradio chat
                         return "Command Complete!"
-                    complete_response += str(msg) + '\n'
+                    
+                    if msg.startswith('[LOG]'):
+                        complete_response += '\n'
+                    if msg.endswith('\\\\'):
+                        complete_response += msg.rstrip('\\\\')
+                    else:
+                        complete_response += msg + '\n'
                 yield complete_response
 
     def generate_mjpeg_stream(self):

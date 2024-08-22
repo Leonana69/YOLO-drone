@@ -21,6 +21,8 @@ class TelloLLM():
         if not self.check_battery():
             return
         
+        return
+        
         self.streamOn = True
         self.drone.takeoff()
         self.drone.move_up(20)

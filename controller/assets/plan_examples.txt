@@ -68,4 +68,16 @@ Example 12:
 Scene: [sports ball x:0.74 y:0.3 width:0.09 height:0.1]
 Task: [A] Follow the ball for 17s.
 Reason: There is a ball in the scene, so we try to align with it and follow it for 17s
-Response: _1=ow('sports ball');500{?time()>17{->True}_2=ox('sports ball');?_2>0.55{tc(15)}?_2<0.45{tu(15)}_3=ow('sports ball');?_3>_1{mb(20)}?_3<_1{mf(20)}d(0.25)}
+Response: _1=ow('sports ball');500{?time()>17{->True}_2=ox('sports ball');?_2>0.55{tc(15)}?_2<0.45{tu(15)}_3=ow('sports ball');?_3>_1*1.2{mb(40)}?_3<_1*0.8{mf(40)}d(0.25)}
+
+Example 13:
+Scene: [chair x:0.18 y:0.5 width:0.43 height:0.7, chair x:0.6 y:0.3 width:0.08 height:0.09, book x:0.62 y:0.26 width:0.23 height:0.17]
+Task: [Q] Which chair is closer to the book?
+Reason: The second chair (on the right) is closer to the book
+Response: l('the right chair');
+
+Example 14:
+Scene: []
+Task: [A] Move in a 'V' shape.
+Reason: Go forward, then turn 135 degrees to the left, finally go forward again.
+Response: mf(100);tu(135);mf(100);

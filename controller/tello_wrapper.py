@@ -137,13 +137,15 @@ class TelloWrapper(RobotWrapper):
         self.drone.rotate_counter_clockwise(degree)
         self.rotation_accumulator += degree
         time.sleep(1)
-        return True, degree > SCENE_CHANGE_ANGLE
+        # return True, degree > SCENE_CHANGE_ANGLE
+        return True, False
 
     def turn_cw(self, degree: int) -> Tuple[bool, bool]:
         self.drone.rotate_clockwise(degree)
         self.rotation_accumulator -= degree
         time.sleep(1)
-        return True, degree > SCENE_CHANGE_ANGLE
+        # return True, degree > SCENE_CHANGE_ANGLE
+        return True, False
     
     def is_battery_good(self) -> bool:
         self.battery = self.drone.query_battery()
