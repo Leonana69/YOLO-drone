@@ -25,7 +25,6 @@ class LLMController():
         VIRTUAL = 0
         TELLO = 1
         GEAR = 2
-        POD = 3
     def __init__(self, robot_type, use_http=False, message_queue: Optional[queue.Queue]=None):
         self.shared_frame = SharedFrame()
         if use_http:
@@ -54,9 +53,6 @@ class LLMController():
                 print_t("[C] Start Gear robot car...")
                 from .gear_wrapper import GearWrapper
                 self.drone: RobotWrapper = GearWrapper()
-            case LLMController.RobotType.POD:
-                from .pod_wrapper import PodWrapper
-                self.drone: RobotWrapper = PodWrapper()
             case _:
                 print_t("[C] Start virtual drone...")
                 self.drone: RobotWrapper = VirtualRobotWrapper()
