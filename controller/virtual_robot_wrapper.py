@@ -98,6 +98,3 @@ class VirtualRobotWrapper(RobotWrapper):
             return True, False
         time.sleep(1)
         return True, False
-    
-    def move_in_circle(self, cw) -> Tuple[bool, bool]:
-        pass

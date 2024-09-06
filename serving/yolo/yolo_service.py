@@ -84,12 +84,12 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
     
     def process_image(self, image, id=None, conf=0.3):
         if self.stream_mode:
-            result = self.model.track(image, verbose=False, conf=conf, tracker="bytetrack.yaml")[0]
+            yolo_result = self.model.track(image, verbose=False, conf=conf, tracker="bytetrack.yaml")[0]
         else:
-            result = self.standard_model(image, verbose=False, conf=conf)[0]
+            yolo_result = self.model(image, verbose=False, conf=conf)[0]
         result = {
             "image_id": id,
-            "result": YoloService.format_result(result),
+            "result": YoloService.format_result(yolo_result),
         }
         return json.dumps(result)
 

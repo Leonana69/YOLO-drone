@@ -81,7 +81,7 @@ class YoloGRPCClient():
             self.frame_id += 1
 
         detect_request = hyrch_serving_pb2.DetectRequest(image_id=image_id, image_data=image_bytes, conf=conf)
-        response = await self.stub_async.DetectStream(detect_request)
+        response = await self.stub_async.Detect(detect_request)
     
         json_results = json.loads(response.json_data)
         if self.frame_queue.empty():
