@@ -5,31 +5,30 @@ from .llm_wrapper import LLMWrapper, GPT3, GPT4
 from .vision_skill_wrapper import VisionSkillWrapper
 from .utils import print_t
 from .minispec_interpreter import MiniSpecValueType, evaluate_value
+from .abs.robot_wrapper import RobotType
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class LLMPlanner():
-    def __init__(self):
+    def __init__(self, robot_type: RobotType):
         self.llm = LLMWrapper()
         self.model_name = GPT4
 
+        type_folder_name = 'tello'
+        if robot_type == RobotType.GEAR:
+            type_folder_name = 'gear'
+
         # read prompt from txt
-        with open(os.path.join(CURRENT_DIR, "./assets/prompt_plan.txt"), "r") as f:
+        with open(os.path.join(CURRENT_DIR, f"./assets/{type_folder_name}/prompt_plan.txt"), "r") as f:
             self.prompt_plan = f.read()
 
-        with open(os.path.join(CURRENT_DIR, "./assets/prompt_probe.txt"), "r") as f:
+        with open(os.path.join(CURRENT_DIR, f"./assets/{type_folder_name}/prompt_probe.txt"), "r") as f:
             self.prompt_probe = f.read()
 
-        with open(os.path.join(CURRENT_DIR, "./assets/prompt_yolo_get_class.txt"), "r") as f:
-            self.prompt_yolo_get_class = f.read()
-
-        with open(os.path.join(CURRENT_DIR, "./assets/guides.txt"), "r") as f:
+        with open(os.path.join(CURRENT_DIR, f"./assets/{type_folder_name}/guides.txt"), "r") as f:
             self.guides = f.read()
 
-        with open(os.path.join(CURRENT_DIR, "./assets/minispec_syntax.txt"), "r") as f:
-            self.minispec_syntax = f.read()
-
-        with open(os.path.join(CURRENT_DIR, "./assets/plan_examples.txt"), "r") as f:
+        with open(os.path.join(CURRENT_DIR, f"./assets/{type_folder_name}/plan_examples.txt"), "r") as f:
             self.plan_examples = f.read()
 
     def set_model(self, model_name):
@@ -39,11 +38,6 @@ class LLMPlanner():
         self.high_level_skillset = high_level_skillset
         self.low_level_skillset = low_level_skillset
         self.vision_skill = vision_skill
-    
-    def get_class(self, task_description: str):
-        prompt = self.prompt_yolo_get_class.format(task_description=task_description)
-        result = self.llm.request(prompt, GPT3)
-        return ast.literal_eval(result)
 
     def plan(self, task_description: str, scene_description: str = None, error_message: str = None, execution_history: str = None):
         # by default, the task_description is an action
@@ -54,7 +48,6 @@ class LLMPlanner():
             scene_description = self.vision_skill.get_obj_list()
         prompt = self.prompt_plan.format(system_skill_description_high=self.high_level_skillset,
                                              system_skill_description_low=self.low_level_skillset,
-                                            #  minispec_syntax=self.minispec_syntax,
                                              guides=self.guides,
                                              plan_examples=self.plan_examples,
                                              error_message=error_message,

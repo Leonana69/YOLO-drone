@@ -13,6 +13,7 @@ sys.path.append(PARENT_DIR)
 from controller.llm_controller import LLMController
 from controller.utils import print_t
 from controller.llm_wrapper import GPT4, LLAMA3
+from controller.abs.robot_wrapper import RobotType
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -133,10 +134,10 @@ if __name__ == "__main__":
     parser.add_argument('--gear', action='store_true')
 
     args = parser.parse_args()
-    robot_type = LLMController.RobotType.TELLO
+    robot_type = RobotType.TELLO
     if args.use_virtual_robot:
-        robot_type = LLMController.RobotType.VIRTUAL
+        robot_type = RobotType.VIRTUAL
     elif args.gear:
-        robot_type = LLMController.RobotType.GEAR
+        robot_type = RobotType.GEAR
     typefly = TypeFly(robot_type, use_http=args.use_http)
     typefly.run()

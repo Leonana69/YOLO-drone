@@ -16,15 +16,11 @@ from .llm_planner import LLMPlanner
 from .skillset import SkillSet, LowLevelSkillItem, HighLevelSkillItem, SkillArg
 from .utils import print_t, input_t
 from .minispec_interpreter import MiniSpecInterpreter, Statement
-
+from .abs.robot_wrapper import RobotType
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class LLMController():
-    class RobotType(Enum):
-        VIRTUAL = 0
-        TELLO = 1
-        GEAR = 2
     def __init__(self, robot_type, use_http=False, message_queue: Optional[queue.Queue]=None):
         self.shared_frame = SharedFrame()
         if use_http:
@@ -45,10 +41,10 @@ class LLMController():
             os.makedirs(self.cache_folder)
         
         match robot_type:
-            case LLMController.RobotType.TELLO:
+            case RobotType.TELLO:
                 print_t("[C] Start Tello drone...")
                 self.drone: RobotWrapper = TelloWrapper()
-            case LLMController.RobotType.GEAR:
+            case RobotType.GEAR:
                 print_t("[C] Start Gear robot car...")
                 from .gear_wrapper import GearWrapper
                 self.drone: RobotWrapper = GearWrapper()
@@ -56,7 +52,7 @@ class LLMController():
                 print_t("[C] Start virtual drone...")
                 self.drone: RobotWrapper = VirtualRobotWrapper()
         
-        self.planner = LLMPlanner()
+        self.planner = LLMPlanner(robot_type)
 
         # load low-level skills
         self.low_level_skillset = SkillSet(level="low")
@@ -84,7 +80,11 @@ class LLMController():
         self.low_level_skillset.add_skill(LowLevelSkillItem("time", self.skill_time, "Get current execution time", args=[]))
         # load high-level skills
         self.high_level_skillset = SkillSet(level="high", lower_level_skillset=self.low_level_skillset)
-        with open(os.path.join(CURRENT_DIR, "assets/high_level_skills.json"), "r") as f:
+
+        type_folder_name = 'tello'
+        if robot_type == RobotType.GEAR:
+            type_folder_name = 'gear'
+        with open(os.path.join(CURRENT_DIR, f"assets/{type_folder_name}/high_level_skills.json"), "r") as f:
             json_data = json.load(f)
             for skill in json_data:
                 self.high_level_skillset.add_skill(HighLevelSkillItem.load_from_dict(skill))
@@ -146,7 +146,6 @@ class LLMController():
     def get_latest_frame(self, plot=False):
         image = self.shared_frame.get_image()
         if plot and image:
-            # YoloClient.plot_results(image, self.shared_frame.get_yolo_result().get('result'))
             self.vision.update()
             YoloClient.plot_results_oi(image, self.vision.object_list)
         return image
@@ -167,26 +166,20 @@ class LLMController():
         while True:
             self.current_plan = self.planner.plan(task_description, execution_history=self.execution_history)
             self.append_message(f'[Plan]: \\\\')
-            # self.append_message(self.current_plan)
-            # consent = input_t(f"[C] Get plan: {self.current_plan}, executing?")
-            # if consent == 'n':
-            #     print_t("[C] > Plan rejected <")
-            #     return
             try:
                 self.execution_time = time.time()
                 ret_val = self.execute_minispec(self.current_plan)
             except Exception as e:
                 print_t(f"[C] Error: {e}")
-            break
             
-            # disable replan for now
+            # disable replan for debugging
+            break
             if ret_val.replan:
                 print_t(f"[C] > Replanning <: {ret_val.value}")
                 continue
             else:
                 break
         self.append_message(f'\n[Task ended]')
-        # self.append_message(f'Task complete with {ret_val.value if ret_val else None}')
         self.append_message('end')
         self.current_plan = None
         self.execution_history = None
