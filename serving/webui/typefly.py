@@ -13,6 +13,7 @@ sys.path.append(PARENT_DIR)
 from controller.llm_controller import LLMController
 from controller.utils import print_t
 from controller.llm_wrapper import GPT4, LLAMA3
+from controller.abs.robot_wrapper import RobotType
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -29,11 +30,19 @@ class TypeFly:
         self.ui = gr.Blocks(title="TypeFly")
         self.asyncio_loop = asyncio.get_event_loop()
         self.use_llama3 = False
+        default_sentences = [
+            "Find something I can eat.",
+            "What you can see?",
+            "Follow that ball for 20 seconds",
+            "Find a chair for me.",
+            "Go to the chair without book.",
+        ]
         with self.ui:
             gr.HTML(open(os.path.join(CURRENT_DIR, 'header.html'), 'r').read())
             gr.HTML(open(os.path.join(CURRENT_DIR, 'drone-pov.html'), 'r').read())
-            gr.ChatInterface(self.process_message, retry_btn=None, fill_height=False).queue()
-            gr.Checkbox(label='Use llama3', value=False).select(self.checkbox_llama3)
+            gr.ChatInterface(self.process_message, retry_btn=None, fill_height=False, examples=default_sentences).queue()
+            # TODO: Add checkbox to switch between llama3 and gpt4
+            # gr.Checkbox(label='Use llama3', value=False).select(self.checkbox_llama3)
 
     def checkbox_llama3(self):
         self.use_llama3 = not self.use_llama3
@@ -62,11 +71,17 @@ class TypeFly:
                     # history.append((message, complete_response))
                     history.append((None, msg))
                     # complete_response = ''
-                else:
+                elif isinstance(msg, str):
                     if msg == 'end':
                         # Indicate end of the task to Gradio chat
                         return "Command Complete!"
-                    complete_response += str(msg) + '\n'
+                    
+                    if msg.startswith('[LOG]'):
+                        complete_response += '\n'
+                    if msg.endswith('\\\\'):
+                        complete_response += msg.rstrip('\\\\')
+                    else:
+                        complete_response += msg + '\n'
                 yield complete_response
 
     def generate_mjpeg_stream(self):
@@ -117,11 +132,12 @@ if __name__ == "__main__":
     parser.add_argument('--use_virtual_robot', action='store_true')
     parser.add_argument('--use_http', action='store_true')
     parser.add_argument('--gear', action='store_true')
+
     args = parser.parse_args()
-    robot_type = LLMController.RobotType.TELLO
+    robot_type = RobotType.TELLO
     if args.use_virtual_robot:
-        robot_type = LLMController.RobotType.VIRTUAL
+        robot_type = RobotType.VIRTUAL
     elif args.gear:
-        robot_type = LLMController.RobotType.GEAR
+        robot_type = RobotType.GEAR
     typefly = TypeFly(robot_type, use_http=args.use_http)
     typefly.run()

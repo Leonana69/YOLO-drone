@@ -16,22 +16,17 @@ from .llm_planner import LLMPlanner
 from .skillset import SkillSet, LowLevelSkillItem, HighLevelSkillItem, SkillArg
 from .utils import print_t, input_t
 from .minispec_interpreter import MiniSpecInterpreter, Statement
-
+from .abs.robot_wrapper import RobotType
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class LLMController():
-    class RobotType(Enum):
-        VIRTUAL = 0
-        TELLO = 1
-        GEAR = 2
     def __init__(self, robot_type, use_http=False, message_queue: Optional[queue.Queue]=None):
         self.shared_frame = SharedFrame()
         if use_http:
             self.yolo_client = YoloClient(shared_frame=self.shared_frame)
         else:
             self.yolo_client = YoloGRPCClient(shared_frame=self.shared_frame)
-            self.yolo_client.set_class([])
         self.vision = VisionSkillWrapper(self.shared_frame)
         self.latest_frame = None
         self.controller_active = True
@@ -46,10 +41,10 @@ class LLMController():
             os.makedirs(self.cache_folder)
         
         match robot_type:
-            case LLMController.RobotType.TELLO:
+            case RobotType.TELLO:
                 print_t("[C] Start Tello drone...")
                 self.drone: RobotWrapper = TelloWrapper()
-            case LLMController.RobotType.GEAR:
+            case RobotType.GEAR:
                 print_t("[C] Start Gear robot car...")
                 from .gear_wrapper import GearWrapper
                 self.drone: RobotWrapper = GearWrapper()
@@ -57,7 +52,7 @@ class LLMController():
                 print_t("[C] Start virtual drone...")
                 self.drone: RobotWrapper = VirtualRobotWrapper()
         
-        self.planner = LLMPlanner()
+        self.planner = LLMPlanner(robot_type)
 
         # load low-level skills
         self.low_level_skillset = SkillSet(level="low")
@@ -69,8 +64,7 @@ class LLMController():
         self.low_level_skillset.add_skill(LowLevelSkillItem("move_down", self.drone.move_down, "Move down by a distance", args=[SkillArg("distance", int)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("turn_cw", self.drone.turn_cw, "Rotate clockwise/right by certain degrees", args=[SkillArg("degrees", int)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("turn_ccw", self.drone.turn_ccw, "Rotate counterclockwise/left by certain degrees", args=[SkillArg("degrees", int)]))
-        self.low_level_skillset.add_skill(LowLevelSkillItem("move_in_circle", self.drone.move_in_circle, "Move in circle in cw/ccw", args=[SkillArg("cw", bool)]))
-        self.low_level_skillset.add_skill(LowLevelSkillItem("delay", self.skill_delay, "Wait for specified microseconds", args=[SkillArg("milliseconds", int)]))
+        self.low_level_skillset.add_skill(LowLevelSkillItem("delay", self.skill_delay, "Wait for specified seconds", args=[SkillArg("seconds", float)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("is_visible", self.vision.is_visible, "Check the visibility of target object", args=[SkillArg("object_name", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("object_x", self.vision.object_x, "Get object's X-coordinate in (0,1)", args=[SkillArg("object_name", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("object_y", self.vision.object_y, "Get object's Y-coordinate in (0,1)", args=[SkillArg("object_name", str)]))
@@ -82,9 +76,15 @@ class LLMController():
         self.low_level_skillset.add_skill(LowLevelSkillItem("take_picture", self.skill_take_picture, "Take a picture"))
         self.low_level_skillset.add_skill(LowLevelSkillItem("re_plan", self.skill_re_plan, "Replanning"))
 
+        self.low_level_skillset.add_skill(LowLevelSkillItem("goto", self.skill_goto, "goto the object", args=[SkillArg("object_name[*x-value]", str)]))
+        self.low_level_skillset.add_skill(LowLevelSkillItem("time", self.skill_time, "Get current execution time", args=[]))
         # load high-level skills
         self.high_level_skillset = SkillSet(level="high", lower_level_skillset=self.low_level_skillset)
-        with open(os.path.join(CURRENT_DIR, "assets/high_level_skills.json"), "r") as f:
+
+        type_folder_name = 'tello'
+        if robot_type == RobotType.GEAR:
+            type_folder_name = 'gear'
+        with open(os.path.join(CURRENT_DIR, f"assets/{type_folder_name}/high_level_skills.json"), "r") as f:
             json_data = json.load(f)
             for skill in json_data:
                 self.high_level_skillset.add_skill(HighLevelSkillItem.load_from_dict(skill))
@@ -95,6 +95,27 @@ class LLMController():
 
         self.current_plan = None
         self.execution_history = None
+        self.execution_time = time.time()
+
+    def skill_time(self) -> Tuple[float, bool]:
+        return time.time() - self.execution_time, False
+
+    def skill_goto(self, object_name: str) -> Tuple[None, bool]:
+        print(f'Goto {object_name}')
+        if '[' in object_name:
+            x = float(object_name.split('[')[1].split(']')[0])
+        else:
+            x = self.vision.object_x(object_name)[0]
+
+        print(f'>> GOTO x {x} {type(x)}')
+
+        if x > 0.55:
+            self.drone.turn_cw(int((x - 0.5) * 70))
+        elif x < 0.45:
+            self.drone.turn_ccw(int((0.5 - x) * 70))
+
+        self.drone.move_forward(110)
+        return None, False
 
     def skill_take_picture(self) -> Tuple[None, bool]:
         img_path = os.path.join(self.cache_folder, f"{uuid.uuid4()}.jpg")
@@ -104,15 +125,15 @@ class LLMController():
         return None, False
 
     def skill_log(self, text: str) -> Tuple[None, bool]:
-        self.append_message(text)
+        self.append_message(f"[LOG] {text}")
         print_t(f"[LOG] {text}")
         return None, False
     
     def skill_re_plan(self) -> Tuple[None, bool]:
         return None, True
 
-    def skill_delay(self, ms: int) -> Tuple[None, bool]:
-        time.sleep(ms / 1000.0)
+    def skill_delay(self, s: float) -> Tuple[None, bool]:
+        time.sleep(s)
         return None, False
 
     def append_message(self, message: str):
@@ -125,13 +146,12 @@ class LLMController():
     def get_latest_frame(self, plot=False):
         image = self.shared_frame.get_image()
         if plot and image:
-            # YoloClient.plot_results(image, self.shared_frame.get_yolo_result().get('result'))
             self.vision.update()
             YoloClient.plot_results_oi(image, self.vision.object_list)
         return image
     
     def execute_minispec(self, minispec: str):
-        interpreter = MiniSpecInterpreter()
+        interpreter = MiniSpecInterpreter(self.message_queue)
         interpreter.execute(minispec)
         self.execution_history = interpreter.execution_history
         ret_val = interpreter.ret_queue.get()
@@ -144,36 +164,33 @@ class LLMController():
         self.append_message('[TASK]: ' + task_description)
         ret_val = None
         while True:
-            # set class for yolo
-            # self.yolo_client.set_class(self.planner.get_class(task_description))
             self.current_plan = self.planner.plan(task_description, execution_history=self.execution_history)
-            # consent = input_t(f"[C] Get plan: {self.current_plan}, executing?")
-            # if consent == 'n':
-            #     print_t("[C] > Plan rejected <")
-            #     return
+            self.append_message(f'[Plan]: \\\\')
             try:
+                self.execution_time = time.time()
                 ret_val = self.execute_minispec(self.current_plan)
             except Exception as e:
                 print_t(f"[C] Error: {e}")
-            # break
             
-            # disable replan for now
+            # disable replan for debugging
+            break
             if ret_val.replan:
                 print_t(f"[C] > Replanning <: {ret_val.value}")
                 continue
             else:
                 break
-        self.append_message(f'Task ended')
-        # self.append_message(f'Task complete with {ret_val.value if ret_val else None}')
+        self.append_message(f'\n[Task ended]')
         self.append_message('end')
         self.current_plan = None
         self.execution_history = None
 
     def start_robot(self):
-        print_t("[C] Drone is taking off...")
+        print_t("[C] Connecting to robot...")
         self.drone.connect()
+        print_t("[C] Starting robot...")
         self.drone.takeoff()
         self.drone.move_up(25)
+        print_t("[C] Starting stream...")
         self.drone.start_stream()
         self.controller_wait_takeoff = False
 
@@ -197,7 +214,7 @@ class LLMController():
             else:
                 # asynchronously send image to yolo server
                 asyncio_loop.call_soon_threadsafe(asyncio.create_task, self.yolo_client.detect(frame))
-            time.sleep(0.080)
+            time.sleep(0.10)
         # Cancel all running tasks (if any)
         for task in asyncio.all_tasks(asyncio_loop):
             task.cancel()

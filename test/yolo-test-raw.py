@@ -2,8 +2,7 @@ from ultralytics import YOLOWorld, YOLO
 import cv2
 
 # model = YOLOWorld('yolov8s-worldv2.pt')
-model = YOLO('yolov8s.pt')
-# model.set_class(['suitcase', 'person'])
+model = YOLO('yolov9e.pt')
 
 def format_result(yolo_result):
     if yolo_result.probs is not None:
@@ -63,32 +62,38 @@ def init_filter():
     kf.Q *= 0.01  # Process uncertainty
     return kf
 
-kf = init_filter()
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-    # detect
-    inference = model.track(frame, conf=0.1)
-    print(inference)
-    result = format_result(inference[0])
-    # result = format_result(model.track(frame, conf=0.1, persist=True, tracker="bytetrack.yaml")[0])
-    plot_results(frame, result)
-    has_person = False
-    for item in result:
-        if item["name"].startswith('suitcase'):
-            has_person = True
-            loc_x = (item["box"]["x1"] + item["box"]["x2"]) / 2
-            loc_y = (item["box"]["y1"] + item["box"]["y2"]) / 2
-            kf.update((loc_x, loc_y))
+img = cv2.imread('./cache/frame_2.png')
+inference = model(img, conf=0.1)
+result = format_result(inference[0])
+plot_results(img, result)
+cv2.imshow('frame', img)
+cv2.waitKey(0)
 
-    kf.predict()
+# kf = init_filter()
+# while True:
+#     ret, frame = cap.read()
+#     if not ret:
+#         break
+#     # detect
+#     inference = model.track(frame, conf=0.1)
+#     result = format_result(inference[0])
+#     # result = format_result(model.track(frame, conf=0.1, persist=True, tracker="bytetrack.yaml")[0])
+#     plot_results(frame, result)
+#     has_person = False
+#     for item in result:
+#         if item["name"].startswith('suitcase'):
+#             has_person = True
+#             loc_x = (item["box"]["x1"] + item["box"]["x2"]) / 2
+#             loc_y = (item["box"]["y1"] + item["box"]["y2"]) / 2
+#             kf.update((loc_x, loc_y))
 
-    print(kf.x, frame.shape[0], frame.shape[1])
-    cv2.circle(frame, (int(kf.x[0] * frame.shape[1]), int(kf.x[1] * frame.shape[0])), 5, (0, 255, 0), -1)
-    # print(model(frame, conf=0.01))
-    # exit(0)
-    # display
-    cv2.imshow('frame', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+#     kf.predict()
+
+#     print(kf.x, frame.shape[0], frame.shape[1])
+#     cv2.circle(frame, (int(kf.x[0] * frame.shape[1]), int(kf.x[1] * frame.shape[0])), 5, (0, 255, 0), -1)
+#     # print(model(frame, conf=0.01))
+#     # exit(0)
+#     # display
+#     cv2.imshow('frame', frame)
+#     if cv2.waitKey(1) & 0xFF == ord('q'):
+#         break

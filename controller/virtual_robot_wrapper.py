@@ -1,4 +1,4 @@
-import cv2
+import cv2, time
 from typing import Tuple
 from .abs.robot_wrapper import RobotWrapper
 
@@ -50,29 +50,35 @@ class VirtualRobotWrapper(RobotWrapper):
     def move_forward(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving forward {distance} cm")
         self.movement_x_accumulator += distance
+        time.sleep(1)
         return True, False
 
     def move_backward(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving backward {distance} cm")
         self.movement_x_accumulator -= distance
+        time.sleep(1)
         return True, False
 
     def move_left(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving left {distance} cm")
         self.movement_y_accumulator += distance
+        time.sleep(1)
         return True, False
 
     def move_right(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving right {distance} cm")
         self.movement_y_accumulator -= distance
+        time.sleep(1)
         return True, False
 
     def move_up(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving up {distance} cm")
+        time.sleep(1)
         return True, False
 
     def move_down(self, distance: int) -> Tuple[bool, bool]:
         print(f"-> Moving down {distance} cm")
+        time.sleep(1)
         return True, False
 
     def turn_ccw(self, degree: int) -> Tuple[bool, bool]:
@@ -80,7 +86,8 @@ class VirtualRobotWrapper(RobotWrapper):
         self.rotation_accumulator += degree
         if degree >= 90:
             print("-> Turning CCW over 90 degrees")
-            return True, True
+            return True, False
+        time.sleep(1)
         return True, False
 
     def turn_cw(self, degree: int) -> Tuple[bool, bool]:
@@ -88,8 +95,6 @@ class VirtualRobotWrapper(RobotWrapper):
         self.rotation_accumulator -= degree
         if degree >= 90:
             print("-> Turning CW over 90 degrees")
-            return True, True
+            return True, False
+        time.sleep(1)
         return True, False
-    
-    def move_in_circle(self, cw) -> Tuple[bool, bool]:
-        pass

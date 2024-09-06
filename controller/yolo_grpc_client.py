@@ -52,15 +52,6 @@ class YoloGRPCClient():
     def retrieve(self) -> Optional[SharedFrame]:
         return self.shared_frame
     
-    def set_class(self, class_names: List[str]):
-        print_t(f"Set classes: {class_names}")
-        to_set = []
-        for class_name in class_names:
-            if class_name not in DEFAULT_YOLO_LIST:
-                to_set.append(class_name)
-        class_request = hyrch_serving_pb2.SetClassRequest(class_names=to_set)
-        self.stub.SetClasses(class_request)
-    
     def detect_local(self, frame: Frame, conf=0.2):
         image = frame.image
         image_bytes = YoloGRPCClient.image_to_bytes(image.resize(self.image_size))
@@ -73,7 +64,7 @@ class YoloGRPCClient():
         if self.shared_frame is not None:
             self.shared_frame.set(self.frame_queue.get(), json_results)
 
-    async def detect(self, frame: Frame, conf=0.2):
+    async def detect(self, frame: Frame, conf=0.1):
         if not self.is_async_inited:
             self.init_async_channel()
 
@@ -82,14 +73,15 @@ class YoloGRPCClient():
             return
 
         image = frame.image
-        image_bytes = YoloGRPCClient.image_to_bytes(image.resize(self.image_size))
+        # do not resize for demo
+        image_bytes = YoloGRPCClient.image_to_bytes(image)
         async with self.frame_id_lock:
             image_id = self.frame_id
             self.frame_queue.put((self.frame_id, frame))
             self.frame_id += 1
 
         detect_request = hyrch_serving_pb2.DetectRequest(image_id=image_id, image_data=image_bytes, conf=conf)
-        response = await self.stub_async.DetectStream(detect_request)
+        response = await self.stub_async.Detect(detect_request)
     
         json_results = json.loads(response.json_data)
         if self.frame_queue.empty():

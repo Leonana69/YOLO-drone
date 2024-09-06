@@ -1,4 +1,10 @@
 from abc import ABC, abstractmethod
+from enum import Enum
+
+class RobotType(Enum):
+    VIRTUAL = 0
+    TELLO = 1
+    GEAR = 2
 
 class RobotWrapper(ABC):
     movement_x_accumulator = 0

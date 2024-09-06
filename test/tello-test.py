@@ -1,8 +1,6 @@
 from djitellopy import Tello
 import cv2
 
-cv2.utils.logging.setLogLevel(cv2.utils.logging.LOG_LEVEL_ERROR)
-
 class TelloLLM():
     def __init__(self):
         self.drone = Tello()
@@ -23,6 +21,8 @@ class TelloLLM():
         if not self.check_battery():
             return
         
+        return
+        
         self.streamOn = True
         self.drone.takeoff()
         self.drone.move_up(20)
@@ -31,21 +31,20 @@ class TelloLLM():
 
         frame_read = self.drone.get_frame_read()
 
-        aliveCount = 1
+        count = 0
         while (True):
-            aliveCount += 1
-            if aliveCount % 50 == 0:
-                self.check_battery()
             frame = frame_read.frame
             if frame is None:
                 continue
             print("### GET Frame: ", frame.shape)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            cv2.imwrite(f"./cache/frame_{count}.png", frame)
             cv2.imshow("Tello", frame)
             key = cv2.waitKey(10) & 0xff
             # Press esc to exit
             if key == 27:
                 break
+            count += 1
         self.drone.streamoff()
         self.drone.land()
 

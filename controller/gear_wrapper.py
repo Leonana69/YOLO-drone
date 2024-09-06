@@ -73,7 +73,7 @@ class GearWrapper(RobotWrapper):
     def __init__(self):
         self.stream_on = False
         config = {
-            'ip': '192.168.8.116',
+            'ip': '192.168.8.169',
             'ip1': '192.168.8.195',
             'port': 80,
             'stream_port': 81
@@ -83,7 +83,7 @@ class GearWrapper(RobotWrapper):
         self.move_speed_y = 2.8
         self.unlock_count = 0
         self.model = DirectionPredictor()
-        self.model.load_state_dict(torch.load(os.path.join(CURRENT_DIR, 'assets/model.pth')))
+        self.model.load_state_dict(torch.load(os.path.join(CURRENT_DIR, 'assets/gear/model.pth')))
         self.model.eval()
 
     def keep_active(self):

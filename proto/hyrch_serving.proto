@@ -3,7 +3,6 @@ syntax = "proto3";
 service YoloService {
     rpc DetectStream (DetectRequest) returns (DetectResponse) {}
     rpc Detect (DetectRequest) returns (DetectResponse) {}
-    rpc SetClasses (SetClassRequest) returns (SetClassResponse) {}
 }
 
 message DetectRequest {

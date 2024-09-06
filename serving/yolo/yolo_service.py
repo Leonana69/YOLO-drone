@@ -5,7 +5,7 @@ from io import BytesIO
 import json
 import grpc
 import torch
-from ultralytics import YOLOWorld, YOLO
+from ultralytics import YOLO
 import multiprocessing
 
 PARENT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -14,19 +14,15 @@ ROOT_PATH = os.environ.get("ROOT_PATH", PARENT_DIR)
 SERVICE_PORT = os.environ.get("YOLO_SERVICE_PORT", "50050, 50051").split(",")
 
 MODEL_PATH = os.path.join(ROOT_PATH, "./serving/yolo/models/")
-MODEL_TYPE_1 = "yolov8x-worldv2.pt"
-MODEL_TYPE_2 = "yolov8x.pt"
+MODEL_TYPE = "yolov8x.pt"
 
 sys.path.append(ROOT_PATH)
 sys.path.append(os.path.join(ROOT_PATH, "proto/generated"))
 import hyrch_serving_pb2
 import hyrch_serving_pb2_grpc
 
-def load_model(world=False):
-    if world:
-        model = YOLOWorld(MODEL_PATH + MODEL_TYPE_1)
-    else:
-        model = YOLO(MODEL_PATH + MODEL_TYPE_2)
+def load_model():
+    model = YOLO(MODEL_PATH + MODEL_TYPE)
     if torch.cuda.is_available():
         device = torch.device('cuda:0')
     else:
@@ -46,18 +42,13 @@ def release_model(model):
 class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
     def __init__(self, port):
         self.stream_mode = False
-        self.custom_target = False
-        self.standard_model = load_model()
-        self.custom_model = load_model(world=True)
+        self.model = load_model()
         self.port = port
 
     def reload_model(self):
-        if self.custom_model is not None:
-            release_model(self.custom_model)
-        if self.standard_model is not None:
-            release_model(self.standard_model)
-        self.standard_model = load_model()
-        self.custom_model = load_model(world=True)
+        if self.model is not None:
+            release_model(self.model)
+        self.model = load_model()
 
     @staticmethod
     def bytes_to_image(image_bytes):
@@ -93,17 +84,12 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
     
     def process_image(self, image, id=None, conf=0.3):
         if self.stream_mode:
-            result = self.standard_model.track(image, verbose=False, conf=conf, tracker="bytetrack.yaml")[0]
-            if self.custom_target:
-                result_custom = self.custom_model.track(image, verbose=False, conf=0.05, tracker="bytetrack.yaml")[0]
+            yolo_result = self.model.track(image, verbose=False, conf=conf, tracker="bytetrack.yaml")[0]
         else:
-            result = self.standard_model(image, verbose=False, conf=conf)[0]
-            if self.custom_target:
-                result_custom = self.custom_model(image, verbose=False, conf=0.01)[0]
+            yolo_result = self.model(image, verbose=False, conf=conf)[0]
         result = {
             "image_id": id,
-            "result": YoloService.format_result(result),
-            "result_custom": YoloService.format_result(result_custom) if self.custom_target else []
+            "result": YoloService.format_result(yolo_result),
         }
         return json.dumps(result)
 
@@ -124,16 +110,6 @@ class YoloService(hyrch_serving_pb2_grpc.YoloServiceServicer):
 
         image = YoloService.bytes_to_image(request.image_data)
         return hyrch_serving_pb2.DetectResponse(json_data=self.process_image(image, request.image_id, request.conf))
-    
-    def SetClasses(self, request, context):
-        print(f"Received SetClasses request from {context.peer()} on port {self.port}")
-        if len(request.class_names) > 0:
-            self.custom_target = True
-            self.custom_model.set_classes(list(request.class_names))
-        else:
-            self.custom_target = False
-
-        return hyrch_serving_pb2.SetClassResponse(result="Success")
 
 def serve(port):
     print(f"Starting YoloService at port {port}")
