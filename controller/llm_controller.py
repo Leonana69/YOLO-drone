@@ -31,7 +31,6 @@ class LLMController():
             self.yolo_client = YoloClient(shared_frame=self.shared_frame)
         else:
             self.yolo_client = YoloGRPCClient(shared_frame=self.shared_frame)
-            self.yolo_client.set_class([])
         self.vision = VisionSkillWrapper(self.shared_frame)
         self.latest_frame = None
         self.controller_active = True
@@ -69,7 +68,6 @@ class LLMController():
         self.low_level_skillset.add_skill(LowLevelSkillItem("move_down", self.drone.move_down, "Move down by a distance", args=[SkillArg("distance", int)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("turn_cw", self.drone.turn_cw, "Rotate clockwise/right by certain degrees", args=[SkillArg("degrees", int)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("turn_ccw", self.drone.turn_ccw, "Rotate counterclockwise/left by certain degrees", args=[SkillArg("degrees", int)]))
-        # self.low_level_skillset.add_skill(LowLevelSkillItem("move_in_circle", self.drone.move_in_circle, "Move in circle in cw/ccw", args=[SkillArg("cw", bool)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("delay", self.skill_delay, "Wait for specified seconds", args=[SkillArg("seconds", float)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("is_visible", self.vision.is_visible, "Check the visibility of target object", args=[SkillArg("object_name", str)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("object_x", self.vision.object_x, "Get object's X-coordinate in (0,1)", args=[SkillArg("object_name", str)]))
@@ -83,7 +81,6 @@ class LLMController():
         self.low_level_skillset.add_skill(LowLevelSkillItem("re_plan", self.skill_re_plan, "Replanning"))
 
         self.low_level_skillset.add_skill(LowLevelSkillItem("goto", self.skill_goto, "goto the object", args=[SkillArg("object_name[*x-value]", str)]))
-        # self.low_level_skillset.add_skill(LowLevelSkillItem("follow", self.skill_follow, "follow the object", args=[SkillArg("object_name", str), SkillArg("duration(s)", int)]))
         self.low_level_skillset.add_skill(LowLevelSkillItem("time", self.skill_time, "Get current execution time", args=[]))
         # load high-level skills
         self.high_level_skillset = SkillSet(level="high", lower_level_skillset=self.low_level_skillset)
@@ -102,33 +99,6 @@ class LLMController():
 
     def skill_time(self) -> Tuple[float, bool]:
         return time.time() - self.execution_time, False
-
-    def skill_follow(self, object_name: str, duration: int) -> Tuple[None, bool]:
-        print(f'Follow {object_name} for {duration} seconds')
-        init_size = self.vision.object_width(object_name)[0]
-        init_time = time.time()
-        while time.time() - init_time < duration:
-            if not self.vision.is_visible(object_name):
-                print(f'Object {object_name} is not visible')
-                break
-            try:
-                x = self.vision.object_x(object_name)[0]
-                if x > 0.55:
-                    self.drone.turn_cw(int((x - 0.5) * 70))
-                elif x < 0.45:
-                    self.drone.turn_ccw(int((0.5 - x) * 70))
-
-                size = self.vision.object_width(object_name)[0]
-                print(f'%%%%>>>> size: {init_size} {size}')
-                if size < init_size * 0.8:
-                    self.drone.move_forward(30)
-                elif size > init_size * 1.2:
-                    self.drone.move_backward(30)
-                time.sleep(0.2)
-            except Exception as e:
-                print(f'Error: lost object {object_name}')
-                break
-        return None, False
 
     def skill_goto(self, object_name: str) -> Tuple[None, bool]:
         print(f'Goto {object_name}')
@@ -195,8 +165,6 @@ class LLMController():
         self.append_message('[TASK]: ' + task_description)
         ret_val = None
         while True:
-            # set class for yolo
-            # self.yolo_client.set_class(self.planner.get_class(task_description))
             self.current_plan = self.planner.plan(task_description, execution_history=self.execution_history)
             self.append_message(f'[Plan]: \\\\')
             # self.append_message(self.current_plan)

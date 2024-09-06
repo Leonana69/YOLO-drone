@@ -91,7 +91,7 @@ class VisionSkillWrapper():
             return
         self.last_update = self.shared_frame.timestamp
         self.object_list = []
-        objs = self.shared_frame.get_yolo_result()['result'] + self.shared_frame.get_yolo_result()['result_custom']
+        objs = self.shared_frame.get_yolo_result()['result']
         for obj in objs:
             name = obj['name']
             box = obj['box']
@@ -105,7 +105,7 @@ class VisionSkillWrapper():
             return
         self.last_update = self.shared_frame.timestamp
 
-        objs = self.shared_frame.get_yolo_result()['result'] + self.shared_frame.get_yolo_result()['result_custom']
+        objs = self.shared_frame.get_yolo_result()['result']
 
         updated_trackers = {}
 

@@ -52,15 +52,6 @@ class YoloGRPCClient():
     def retrieve(self) -> Optional[SharedFrame]:
         return self.shared_frame
     
-    def set_class(self, class_names: List[str]):
-        print_t(f"Set classes: {class_names}")
-        to_set = []
-        for class_name in class_names:
-            if class_name not in DEFAULT_YOLO_LIST:
-                to_set.append(class_name)
-        class_request = hyrch_serving_pb2.SetClassRequest(class_names=to_set)
-        self.stub.SetClasses(class_request)
-    
     def detect_local(self, frame: Frame, conf=0.2):
         image = frame.image
         image_bytes = YoloGRPCClient.image_to_bytes(image.resize(self.image_size))
